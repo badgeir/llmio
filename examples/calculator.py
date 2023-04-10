@@ -1,8 +1,4 @@
-from datetime import datetime
-from typing import Optional
 from pprint import pprint
-
-from pydantic import BaseModel, Field
 
 from llmio.assistant import Assistant
 
@@ -32,11 +28,6 @@ def multiply(num1: float, num2: float) -> float:
     """
     return num1 * num2
 
-
-print(assistant.commands[0].params.schema())
-pprint(assistant.commands[0].returns)
-
-print(assistant.system_prompt())
 
 while True:
     reply = assistant.speak(input(">>"))
