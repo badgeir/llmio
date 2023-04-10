@@ -1,10 +1,8 @@
-from functools import wraps
-import textwrap
 from typing import Literal
 from dataclasses import dataclass
 import jinja2
 from datetime import datetime
-from inspect import signature
+from inspect import signature, isclass
 
 import pydantic
 import openai
@@ -39,7 +37,7 @@ class Command:
     @property
     def is_pydantic_output(self):
         annotation = self.function.__annotations__["return"]
-        if issubclass(annotation, pydantic.BaseModel):
+        if isclass(annotation) and issubclass(annotation, pydantic.BaseModel):
             return True
         return False
 
@@ -61,7 +59,7 @@ class Command:
     @property
     def returns(self):
         annotation = self.function.__annotations__["return"]
-        if issubclass(annotation, pydantic.BaseModel):
+        if isclass(annotation) and issubclass(annotation, pydantic.BaseModel):
             return annotation
         else:
             class Result(pydantic.BaseModel):
@@ -70,10 +68,11 @@ class Command:
 
     @property
     def description(self):
+        if self.function.__doc__ is None:
+            return ""
         return self.function.__doc__.strip()
 
     def explain(self):
-        print(self.params.schema())
         return jinja2.Template("""
             Command: {{name}}
             Description: {{description}}
@@ -114,7 +113,6 @@ class Command:
         return Mocker.build()
 
     def execute(self, params):
-        print("execute", params)
         if self.is_pydantic_input:
             result = self.function(params)
         else:
@@ -185,10 +183,6 @@ class Assistant:
 
     def command(self):
         def wrapper(function):
-            print(f"Creating command {function.__name__}")
-            print(function.__annotations__)
-            print("Signature", signature(function))
-
             input_annotations = {
                 name: annotation
                 for name, annotation in function.__annotations__.items()
@@ -232,11 +226,8 @@ class Assistant:
             "role": "assistant",
             "content": content,
         })
-        print(content)
-
         for command in self.commands:
             model = command.command_model()
-            print(model)
             try:
                 inputs = model.parse_raw(content)
             except Exception as e:
@@ -245,6 +236,5 @@ class Assistant:
                 continue
             print("Valid command!")
             result = command.execute(inputs.params)
-            print(result)
             return self.speak(result.json(), role="system")
         return content
