@@ -1,8 +1,8 @@
-from typing import Literal
+from typing import Literal, Optional
 from dataclasses import dataclass
 import jinja2
 from datetime import datetime
-from inspect import signature, isclass
+from inspect import isclass
 
 import pydantic
 import openai
@@ -123,7 +123,13 @@ class Command:
         return self.returns(result=result)
 
 class Assistant:
-    def __init__(self, key: str, short_description: str, engine: str = "gpt-4"):
+    def __init__(
+            self,
+            key: str,
+            short_description: str,
+            engine: str = "gpt-4",
+            command_header: Optional[str] = None,
+        ):
         openai.api_key = key
 
         if engine not in ENGINES:
@@ -135,6 +141,20 @@ class Assistant:
         
         self.commands = []
 
+        if command_header is None:
+            self.command_header = """
+                The following commands can be used.
+                If you intend to execute a command, only write a valid command and nothing else.
+                Do not try to both speak and execute a command at the same time, as it will not be accepted as a command.
+                Also do not try to execute multiple commands at once.
+                You can chain commands, but if so, only execute one command at a time, and then execute the next commands afterward.
+                Every time a command is executed, the results will be shown as a system message, and you then get to either execute a new command or output a normal message intended to the user.
+                Every time you return a normal text, this will stop the command iteration, and the text will be shown to the user. Because of this, do not hint that you will execute a command by saying something like "Ok, I will now do X". Instead, first execute the command, and then write a normal message to the user.
+                Do not talk explicitly about the commands to the user, these are hidden and only serve as your interface to the application backend.
+            """
+        else:
+            self.command_header = command_header
+
     @property
     def description(self) -> str:
         return self.short_description
@@ -143,11 +163,7 @@ class Assistant:
         return jinja2.Template("""
         {{short_description}}
 
-        The following commands can be used.
-        If you intend to execute a command, only write a valid command and nothing else.
-        Do not try to both speak and execute a command at the same time, as it will not be accepted as a command.
-        Also do not try to execute multiple commands at once.
-        You can chain commands, but if so, only execute one command at a time, and then execute the next commands afterward.
+        {{command_header}}
 
         {% for command in commands %}
         {{command.explain()}}
@@ -156,6 +172,7 @@ class Assistant:
         The current time is {{current_time}}
         """).render(
             short_description=self.short_description,
+            command_header=self.command_header,
             commands=self.commands,
             current_time=datetime.now().isoformat()
         )
