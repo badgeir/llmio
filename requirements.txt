@@ -1,3 +1,6 @@
 openai
 fastapi
 pydantic
+jinja2
+polyfactory
+pytest
