@@ -4,9 +4,12 @@ from typing import Literal
 from dataclasses import dataclass
 import jinja2
 from datetime import datetime
+from inspect import signature
 
 import pydantic
 import openai
+
+from llmio import model
 
 
 ENGINES = {
@@ -17,11 +20,57 @@ ENGINES = {
 
 @dataclass
 class Command:
-    name: str
     function: callable
-    description: str
-    params: pydantic.BaseModel
-    returns: pydantic.BaseModel
+
+    @property
+    def name(self):
+        return self.function.__name__
+
+    @property
+    def is_pydantic_input(self):
+        return bool(
+            len(self.input_annotations) == 1 and
+            issubclass(
+                list(self.input_annotations.values())[0],
+                pydantic.BaseModel
+            )
+        )
+
+    @property
+    def is_pydantic_output(self):
+        annotation = self.function.__annotations__["return"]
+        if issubclass(annotation, pydantic.BaseModel):
+            return True
+        return False
+
+    @property
+    def input_annotations(self):
+        return {
+            name: annotation
+            for name, annotation in self.function.__annotations__.items()
+            if name != "return"
+        }
+
+    @property
+    def params(self):
+        if self.is_pydantic_input:
+            return list(self.input_annotations.values())[0]
+
+        return model.model_from_function(self.function)
+
+    @property
+    def returns(self):
+        annotation = self.function.__annotations__["return"]
+        if issubclass(annotation, pydantic.BaseModel):
+            return annotation
+        else:
+            class Result(pydantic.BaseModel):
+                result: annotation
+            return Result
+
+    @property
+    def description(self):
+        return self.function.__doc__.strip()
 
     def explain(self):
         print(self.params.schema())
@@ -63,6 +112,17 @@ class Command:
         class Mocker(ModelFactory):
             __model__ = self.command_model()
         return Mocker.build()
+
+    def execute(self, params):
+        print("execute", params)
+        if self.is_pydantic_input:
+            result = self.function(params)
+        else:
+            result = self.function(**params.dict())
+
+        if self.is_pydantic_output:
+            return result
+        return self.returns(result=result)
 
 class Assistant:
     def __init__(self, key: str, short_description: str, engine: str = "gpt-4"):
@@ -125,32 +185,38 @@ class Assistant:
 
     def command(self):
         def wrapper(function):
-            assert len(function.__annotations__) == 2
             print(f"Creating command {function.__name__}")
-
             print(function.__annotations__)
+            print("Signature", signature(function))
+
+            input_annotations = {
+                name: annotation
+                for name, annotation in function.__annotations__.items()
+                if name != "return"
+            }
+
+            assert (
+                len(input_annotations) == 1 and
+                issubclass(
+                    list(input_annotations.values())[0],
+                    pydantic.BaseModel
+                )
+            ) or (
+                not any(
+                    issubclass(annotation, pydantic.BaseModel)
+                    for annotation in input_annotations.values()
+                )
+            )
 
             assert "return" in function.__annotations__
-            assert issubclass(function.__annotations__["return"], pydantic.BaseModel)
-            input_annotation = [(key, t) for key, t in function.__annotations__.items() if key != "return"]
-            assert issubclass(input_annotation[0][1], pydantic.BaseModel)
-
-            @wraps(function)
-            def wrapped(*args, **kw):
-                return function(*args, **kw)
 
             self.commands.append(
                 Command(
-                    name=function.__name__,
-                    function=wrapped,
-                    description=function.__doc__.strip(),
-                    params=input_annotation[0][1],
-                    returns=function.__annotations__["return"]
+                    function=function,
                 )
             )
-            return wrapped
+            return function
         return wrapper
-
 
     def speak(self, message: str, role="user") -> str:
         self._messages.append({
@@ -178,6 +244,7 @@ class Assistant:
                 print("Not valid")
                 continue
             print("Valid command!")
-            result = command.function(inputs.params)
+            result = command.execute(inputs.params)
+            print(result)
             return self.speak(result.json(), role="system")
         return content
