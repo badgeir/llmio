@@ -1,38 +1,44 @@
-from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
+from pprint import pprint
+
+from pydantic import BaseModel, Field
 
 from llmio.assistant import Assistant
 
 
 assistant = Assistant(
-    short_description="""
-        You are a calculator.
-        Always use the provided commands to calculate things,
-        do not attemt to calculate things yourself.
-    """,
+    short_description="You are Oslo Taxis taxi booking assistant.",
     key=open("/Users/peterleupi/.creds/openai").read().strip(),
 )
 
 
-class NumberPair(BaseModel):
-    number1: float
-    number2: float
+class BookTaxi(BaseModel):
+    n_passengers: int = Field(..., ge=1, le=10)
+    pickup_location: str
+    destination: str
+    pickup_time: datetime = Field(..., description="ISO formated time.")
 
 
 class Result(BaseModel):
-    result: float
+    success: bool
+    booking_id: Optional[str] = None
+    message: Optional[str] = None
 
 
-@assistant.command(description="Add two numbers")
-def add(params: NumberPair) -> Result:
-    print(f"Add {params}")
-    return Result(result=params.number1 + params.number2)
+@assistant.command()
+def book_taxi(params: BookTaxi) -> Result:
+    """
+    Execute a taxi booking order.
+    Make sure the user confirms the details before executing this command.
+    If the command returns success=false, it means the taxi was not successfully booked,
+    and the message field should contain an explanation for why it failed.
+    """
+    return Result(success=True, booking_id="abc123")
 
 
-@assistant.command(description="Multiply two numbers")
-def multiply(params: NumberPair) -> Result:
-    print(f"Multiply {params}")
-    return Result(result=params.number1 * params.number2)
+print(assistant.system_prompt())
 
-
-reply = assistant.speak("How much is ((10 * 2) + (100 * 12345)) * 2?")
-print(reply)
+while True:
+    reply = assistant.speak(input(">>"))
+    pprint(assistant.history)

@@ -1,7 +1,9 @@
 from functools import wraps
-from typing import Optional, Literal
+import textwrap
+from typing import Literal
 from dataclasses import dataclass
 import jinja2
+from datetime import datetime
 
 import pydantic
 import openai
@@ -22,6 +24,7 @@ class Command:
     returns: pydantic.BaseModel
 
     def explain(self):
+        print(self.params.schema())
         return jinja2.Template("""
             Command: {{name}}
             Description: {{description}}
@@ -29,14 +32,14 @@ class Command:
             | Name | Type | Description |
             | ---- | ---- | ----------- | \
             {% for param_name, param_type, param_desc in params %}
-            | {{param_name}} | {{param_type}} | {{param_desc}} | \
+            | {{param_name}} | {{param_type}} | {{param_desc}} | \
             {% endfor %}
 
             Returns:
             | Name | Type | Description |
             | ---- | ---- | ----------- | \
             {% for res_name, res_type, res_desc in returns %}
-            | {{res_name}} | {{res_type}} | {{res_desc}} | \
+            | {{res_name}} | {{res_type}} | {{res_desc}} | \
             {% endfor %}
 
             Example usage:
@@ -44,8 +47,8 @@ class Command:
         """).render(
             name=self.name,
             description=self.description,
-            params=[(key, value["type"], "") for key, value in self.params.schema()["properties"].items()],
-            returns=[(key, value["type"], "") for key, value in self.returns.schema()["properties"].items()],
+            params=[(key, value["type"], value.get("description", "-")) for key, value in self.params.schema()["properties"].items()],
+            returns=[(key, value["type"], value.get("description", "-")) for key, value in self.returns.schema()["properties"].items()],
             mock_data=self.mock_data().json(),
         )
 
@@ -91,9 +94,12 @@ class Assistant:
         {% for command in commands %}
         {{command.explain()}}
         {% endfor %}
+
+        The current time is {{current_time}}
         """).render(
             short_description=self.short_description,
             commands=self.commands,
+            current_time=datetime.now().isoformat()
         )
 
     def _get_system_prompt(self) -> str:
@@ -117,7 +123,7 @@ class Assistant:
 
         return result["choices"][0]["message"]["content"]
 
-    def command(self, description: Optional[str] = None):
+    def command(self):
         def wrapper(function):
             assert len(function.__annotations__) == 2
             print(f"Creating command {function.__name__}")
@@ -137,7 +143,7 @@ class Assistant:
                 Command(
                     name=function.__name__,
                     function=wrapped,
-                    description=description,
+                    description=function.__doc__.strip(),
                     params=input_annotation[0][1],
                     returns=function.__annotations__["return"]
                 )
