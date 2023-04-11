@@ -72,6 +72,11 @@ DEFAULT_SYSTEM_PROMPT = textwrap.dedent(
     {{command.explain()}}
     {% endfor %} \
 
+    System parameters:
     The current time is {{current_time}}
+
+    You are limited to only answer question regarding the scope described above
+    and the available commands defined below.
+    For all other questions, politely decline to answer.
 """
 ).strip()
