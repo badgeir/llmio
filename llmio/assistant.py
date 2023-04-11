@@ -7,6 +7,7 @@ from inspect import isclass, signature
 import jinja2
 import pydantic
 import openai
+from polyfactory.factories.pydantic_factory import ModelFactory
 
 from llmio import model, prompts
 
@@ -59,12 +60,10 @@ class Command:
         annotation = self.function.__annotations__["return"]
         if isclass(annotation) and issubclass(annotation, pydantic.BaseModel):
             return annotation
-        else:
 
-            class Result(pydantic.BaseModel):
-                result: annotation
-
-            return Result
+        class Result(pydantic.BaseModel):
+            result: annotation
+        return Result
 
     @property
     def description(self):
@@ -104,15 +103,13 @@ class Command:
         return Model
 
     def mock_data(self):
-        from polyfactory.factories.pydantic_factory import ModelFactory
-
         class Mocker(ModelFactory):
             __model__ = self.command_model()
 
         return Mocker.build()
 
     def execute(self, params, state=None):
-        kwargs = dict()
+        kwargs = {}
         if "state" in signature(self.function).parameters:
             kwargs["state"] = state
 
@@ -228,14 +225,11 @@ class Assistant:
             }
         )
         for command in self.commands:
-            model = command.command_model()
+            cmd_model = command.command_model()
             try:
-                inputs = model.parse_raw(content)
-            except Exception as e:
-                print(e)
-                print("Not valid")
+                inputs = cmd_model.parse_raw(content)
+            except pydantic.ValidationError:
                 continue
-            print("Valid command!")
             result = command.execute(inputs.params, state=state)
             return self.speak(
                 result.json(),
