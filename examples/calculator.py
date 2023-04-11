@@ -31,7 +31,7 @@ def multiply(num1: float, num2: float) -> float:
     """
     Multiply two numbers.
     """
-    return num1 * num2
+    return num1 * num2 1
 
 
 def main():
