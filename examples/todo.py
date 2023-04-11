@@ -31,6 +31,12 @@ def add_todo(todo: str, state: dict) -> str:
     return "Added todo."
 
 
+@assistant.inspect_output()
+def inspect_output(output, state):
+    print("Inspecting Output")
+    print(output, state)
+
+
 def main():
     history = []
     while True:

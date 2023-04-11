@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Callable, Type
+from typing import Literal, Optional, Callable, Type, Any
 from dataclasses import dataclass
 import textwrap
 from datetime import datetime
@@ -93,12 +93,10 @@ class Command:
             mock_data=self.mock_data().json(),
         )
 
-    def command_model(self):
-        class Model(pydantic.BaseModel):
-            command: Literal[self.name]
-            params: self.params
-
-        return Model
+    def command_model(self) -> Any:
+        return pydantic.create_model(
+            "Model", command=(Literal[self.name], ...), params=(self.params, ...)
+        )
 
     def mock_data(self):
         class Mocker(ModelFactory):
@@ -143,6 +141,9 @@ class Assistant:
         else:
             self.command_header = command_header
 
+        self._prompt_inspectors: list[Callable] = []
+        self._output_inspectors: list[Callable] = []
+
     @property
     def description(self) -> str:
         return self.short_description
@@ -171,7 +172,7 @@ class Assistant:
         ]
 
     def command(self):
-        def wrapper(function):
+        def wrapper(function: Callable):
             input_annotations = {
                 name: annotation
                 for name, annotation in function.__annotations__.items()
@@ -197,6 +198,34 @@ class Assistant:
 
         return wrapper
 
+    def inspect_prompt(self):
+        def wrapper(function: Callable):
+            self._prompt_inspectors.append(function)
+            return function
+
+        return wrapper
+
+    def inspect_output(self):
+        def wrapper(function: Callable):
+            self._output_inspectors.append(function)
+            return function
+
+        return wrapper
+
+    def _run_prompt_inspectors(self, prompt: list[dict[str, str]], state) -> None:
+        for inspector in self._prompt_inspectors:
+            kwargs = {}
+            if "state" in signature(inspector).parameters:
+                kwargs["state"] = state
+            inspector(prompt, **kwargs)
+
+    def _run_content_inspectors(self, content: str, state) -> None:
+        for inspector in self._output_inspectors:
+            kwargs = {}
+            if "state" in signature(inspector).parameters:
+                kwargs["state"] = state
+            inspector(content, **kwargs)
+
     def speak(
         self,
         message: str,
@@ -213,11 +242,17 @@ class Assistant:
                 "content": message,
             }
         )
+
+        prompt = self.create_prompt(history)
+        self._run_prompt_inspectors(prompt, state)
+
         result = openai.ChatCompletion.create(
             model=self.engine,
-            messages=self.create_prompt(history),
+            messages=prompt,
         )
         content = result["choices"][0]["message"]["content"]
+        self._run_content_inspectors(content, state)
+
         history.append(
             {
                 "role": "assistant",

@@ -34,6 +34,18 @@ def multiply(num1: float, num2: float) -> float:
     return num1 * num2
 
 
+@assistant.inspect_prompt()
+def inspect_prompt(prompt):
+    print("Inspecting prompt")
+    pprint(prompt)
+
+
+@assistant.inspect_output()
+def inspect_output(output):
+    print("Inspecting Output")
+    pprint(output)
+
+
 def main():
     history = []
     while True:
