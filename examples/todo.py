@@ -17,7 +17,7 @@ assistant = Assistant(
 )
 
 
-TODOS = collections.defaultdict(list)
+TODOS: dict[int, list[str]] = collections.defaultdict(list)
 
 
 @assistant.command()
@@ -31,7 +31,6 @@ def add_todo(todo: str, state: dict) -> str:
     return "Added todo."
 
 
-
 def main():
     history = []
     while True:
@@ -41,4 +40,5 @@ def main():
 
 
 if __name__ == "__main__":
+    print(assistant.system_prompt())
     main()

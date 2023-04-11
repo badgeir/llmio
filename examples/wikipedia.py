@@ -36,7 +36,7 @@ def get_wiki(url: str) -> str:
         result = (
             bs4.BeautifulSoup(requests.get(url, timeout=2).text)
             .find(attrs={"id": "mw-content-text"})
-            .get_text(separator=" ")[:4000]
+            .get_text(separator=" ")[:4000]  # type: ignore
         )
         return result
     return "Not able to fetch page"
