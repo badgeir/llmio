@@ -33,7 +33,5 @@ def add_todo(todo: str, state: dict) -> str:
 history = []
 while True:
     state = {"conversation_id": 123}
-    result, history = assistant.speak(
-        input(">>"), history=history, state=state
-    )
+    result, history = assistant.speak(input(">>"), history=history, state=state)
     pprint(history)

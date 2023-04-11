@@ -31,7 +31,5 @@ def multiply(num1: float, num2: float) -> float:
 
 history = []
 while True:
-    result, history = assistant.speak(
-        input(">>"), history=history
-    )
+    result, history = assistant.speak(input(">>"), history=history)
     pprint(history)

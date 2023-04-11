@@ -40,7 +40,5 @@ def book_taxi(params: BookTaxi) -> Result:
 
 history = []
 while True:
-    result, history = assistant.speak(
-        input(">>"), history=history
-    )
+    result, history = assistant.speak(input(">>"), history=history)
     pprint(history)
