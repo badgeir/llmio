@@ -5,9 +5,13 @@ from pprint import pprint
 from llmio.assistant import Assistant
 
 
+def get_token():
+    return open("/Users/peterleupi/.creds/openai").read().strip()
+
+
 assistant = Assistant(
     short_description="You are a TODO-application conversation interface.",
-    key=open("/Users/peterleupi/.creds/openai").read().strip(),
+    key=get_token(),
 )
 
 

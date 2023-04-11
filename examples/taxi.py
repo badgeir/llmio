@@ -18,6 +18,7 @@ class BookTaxi(BaseModel):
     pickup_location: str
     destination: str
     pickup_time: datetime = Field(..., description="ISO formated time.")
+    additional_info: Optional[str]
 
 
 class Result(BaseModel):
@@ -36,8 +37,6 @@ def book_taxi(params: BookTaxi) -> Result:
     """
     return Result(success=True, booking_id="abc123")
 
-
-print(assistant.system_prompt())
 
 while True:
     reply = assistant.speak(input(">>"))

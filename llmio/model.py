@@ -22,7 +22,8 @@ def model_from_function(function: Callable):
         if p.kind == Parameter.POSITIONAL_OR_KEYWORD:
             fields[name] = annotation, default
         else:
-            raise ValueError("Unable to parse function signature. Only named arguments supported.")
-
+            raise ValueError(
+                "Unable to parse function signature. Only named arguments supported."
+            )
 
     return create_model(to_camel(function.__name__), __base__=BaseModel, **fields)
