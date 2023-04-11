@@ -29,6 +29,9 @@ def multiply(num1: float, num2: float) -> float:
     return num1 * num2
 
 
+history = []
 while True:
-    reply = assistant.speak(input(">>"))
-    pprint(assistant.history)
+    result, history = assistant.speak(
+        input(">>"), history=history
+    )
+    pprint(history)

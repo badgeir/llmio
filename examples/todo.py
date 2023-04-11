@@ -1,4 +1,5 @@
 from typing import List
+import collections
 
 from pprint import pprint
 
@@ -15,22 +16,24 @@ assistant = Assistant(
 )
 
 
-TODOS = []
+TODOS = collections.defaultdict(list)
 
 
 @assistant.command()
-def get_todos() -> List[str]:
-    print("Get todos!")
-    return TODOS
+def get_todos(system_params: dict) -> List[str]:
+    return TODOS[system_params["conversation_id"]]
 
 
 @assistant.command()
-def add_todo(todo: str) -> str:
-    print("Add todo!")
-    TODOS.append(todo)
+def add_todo(todo: str, system_params: dict) -> str:
+    TODOS[system_params["conversation_id"]].append(todo)
     return "Added todo."
 
 
+history = []
 while True:
-    result = assistant.speak(input(">>"))
-    pprint(assistant.history)
+    system_params = {"conversation_id": 123}
+    result, history = assistant.speak(
+        input(">>"), history=history, system_params=system_params
+    )
+    pprint(history)

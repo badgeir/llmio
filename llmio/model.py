@@ -12,7 +12,10 @@ def model_from_function(function: Callable):
 
     type_hints = get_all_type_hints(function)
     fields: Dict[str, Tuple[Any, Any]] = {}
-    for i, (name, p) in enumerate(parameters.items()):
+    for name, p in parameters.items():
+        if name == "system_params":
+            continue
+
         if p.annotation is p.empty:
             annotation = Any
         else:

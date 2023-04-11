@@ -2,7 +2,7 @@ from typing import Literal, Optional
 from dataclasses import dataclass
 import textwrap
 from datetime import datetime
-from inspect import isclass
+from inspect import isclass, signature
 
 import jinja2
 import pydantic
@@ -44,7 +44,7 @@ class Command:
         return {
             name: annotation
             for name, annotation in self.function.__annotations__.items()
-            if name != "return"
+            if name not in {"return", "system_params"}
         }
 
     @property
@@ -111,11 +111,15 @@ class Command:
 
         return Mocker.build()
 
-    def execute(self, params):
+    def execute(self, params, system_params=None):
+        kwargs = dict()
+        if "system_params" in signature(self.function).parameters:
+            kwargs["system_params"] = system_params
+
         if self.is_pydantic_input:
-            result = self.function(params)
+            result = self.function(params, **kwargs)
         else:
-            result = self.function(**params.dict())
+            result = self.function(**params.dict(), **kwargs)
 
         if self.is_pydantic_output:
             return result
@@ -137,8 +141,6 @@ class Assistant:
 
         self.engine = engine
         self.short_description = short_description
-        self._messages = []
-
         self.commands = []
 
         if command_header is None:
@@ -165,27 +167,18 @@ class Assistant:
     def _get_system_prompt(self) -> str:
         return {"role": "system", "content": self.system_prompt()}
 
-    @property
-    def history(self):
+    def create_prompt(self, message_history):
         return [
             self._get_system_prompt(),
-            *self._messages,
+            *message_history,
         ]
-
-    def _run(self):
-        result = openai.ChatCompletion.create(
-            engine=self.engine,
-            messages=self.history,
-        )
-
-        return result["choices"][0]["message"]["content"]
 
     def command(self):
         def wrapper(function):
             input_annotations = {
                 name: annotation
                 for name, annotation in function.__annotations__.items()
-                if name != "return"
+                if name not in {"return", "system_params"}
             }
 
             assert (
@@ -201,16 +194,23 @@ class Assistant:
             assert "return" in function.__annotations__
 
             self.commands.append(
-                Command(
-                    function=function,
-                )
+                Command(function=function),
             )
             return function
 
         return wrapper
 
-    def speak(self, message: str, role="user") -> str:
-        self._messages.append(
+    def speak(
+        self,
+        message: str,
+        history: Optional[list] = None,
+        system_params=None,
+        role="user",
+    ) -> str:
+        if history is None:
+            history = []
+        history = history[:]
+        history.append(
             {
                 "role": role,
                 "content": message,
@@ -218,10 +218,10 @@ class Assistant:
         )
         result = openai.ChatCompletion.create(
             model=self.engine,
-            messages=self.history,
+            messages=self.create_prompt(history),
         )
         content = result["choices"][0]["message"]["content"]
-        self._messages.append(
+        history.append(
             {
                 "role": "assistant",
                 "content": content,
@@ -236,6 +236,11 @@ class Assistant:
                 print("Not valid")
                 continue
             print("Valid command!")
-            result = command.execute(inputs.params)
-            return self.speak(result.json(), role="system")
-        return content
+            result = command.execute(inputs.params, system_params=system_params)
+            return self.speak(
+                result.json(),
+                history=history,
+                role="system",
+                system_params=system_params,
+            )
+        return content, history

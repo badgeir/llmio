@@ -38,6 +38,9 @@ def book_taxi(params: BookTaxi) -> Result:
     return Result(success=True, booking_id="abc123")
 
 
+history = []
 while True:
-    reply = assistant.speak(input(">>"))
-    pprint(assistant.history)
+    result, history = assistant.speak(
+        input(">>"), history=history
+    )
+    pprint(history)
