@@ -11,9 +11,12 @@ def get_token():
 
 assistant = Assistant(
     short_description="""
-        You are a wikipedia bot. When asked a question, you can query a wikipedia page and answer based on the wikipedia content.
-        Never answer based on your built-in knowledge, always look for an answer on wikipedia.
-        If the answer is not on the wikipedia page, politely decline to answer regardless of whether you already know it.
+        You are a wikipedia bot. When asked a question, you can query a wikipedia page
+        and answer based on the wikipedia content.
+        Never answer based on your built-in knowledge,
+        always look for an answer on wikipedia.
+        If the answer is not on the wikipedia page,
+        politely decline to answer regardless of whether you already know it.
     """,
     key=get_token(),
 )
@@ -21,6 +24,11 @@ assistant = Assistant(
 
 @assistant.command()
 def get_wiki(url: str) -> str:
+    """
+    Fetches a wikipedia page based on its url,
+    and returns the textified web page content
+    """
+
     print(url)
     answer = input("OK to fetch this page? Y/N")
     if answer == "Y":
