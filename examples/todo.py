@@ -20,20 +20,20 @@ TODOS = collections.defaultdict(list)
 
 
 @assistant.command()
-def get_todos(system_params: dict) -> List[str]:
-    return TODOS[system_params["conversation_id"]]
+def get_todos(state: dict) -> List[str]:
+    return TODOS[state["conversation_id"]]
 
 
 @assistant.command()
-def add_todo(todo: str, system_params: dict) -> str:
-    TODOS[system_params["conversation_id"]].append(todo)
+def add_todo(todo: str, state: dict) -> str:
+    TODOS[state["conversation_id"]].append(todo)
     return "Added todo."
 
 
 history = []
 while True:
-    system_params = {"conversation_id": 123}
+    state = {"conversation_id": 123}
     result, history = assistant.speak(
-        input(">>"), history=history, system_params=system_params
+        input(">>"), history=history, state=state
     )
     pprint(history)

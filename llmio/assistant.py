@@ -44,7 +44,7 @@ class Command:
         return {
             name: annotation
             for name, annotation in self.function.__annotations__.items()
-            if name not in {"return", "system_params"}
+            if name not in {"return", "state"}
         }
 
     @property
@@ -111,10 +111,10 @@ class Command:
 
         return Mocker.build()
 
-    def execute(self, params, system_params=None):
+    def execute(self, params, state=None):
         kwargs = dict()
-        if "system_params" in signature(self.function).parameters:
-            kwargs["system_params"] = system_params
+        if "state" in signature(self.function).parameters:
+            kwargs["state"] = state
 
         if self.is_pydantic_input:
             result = self.function(params, **kwargs)
@@ -178,7 +178,7 @@ class Assistant:
             input_annotations = {
                 name: annotation
                 for name, annotation in function.__annotations__.items()
-                if name not in {"return", "system_params"}
+                if name not in {"return", "state"}
             }
 
             assert (
@@ -204,7 +204,7 @@ class Assistant:
         self,
         message: str,
         history: Optional[list] = None,
-        system_params=None,
+        state=None,
         role="user",
     ) -> str:
         if history is None:
@@ -236,11 +236,11 @@ class Assistant:
                 print("Not valid")
                 continue
             print("Valid command!")
-            result = command.execute(inputs.params, system_params=system_params)
+            result = command.execute(inputs.params, state=state)
             return self.speak(
                 result.json(),
                 history=history,
                 role="system",
-                system_params=system_params,
+                state=state,
             )
         return content, history
