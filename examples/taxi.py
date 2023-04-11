@@ -7,9 +7,14 @@ from pydantic import BaseModel, Field
 from llmio.assistant import Assistant
 
 
+def get_token():
+    with open("/Users/peterleupi/.creds/openai", "r", encoding="utf-8") as f:
+        return f.read().strip()
+
+
 assistant = Assistant(
     short_description="You are Oslo Taxis taxi booking assistant.",
-    key=open("/Users/peterleupi/.creds/openai").read().strip(),
+    key=get_token(),
 )
 
 
@@ -35,10 +40,16 @@ def book_taxi(params: BookTaxi) -> Result:
     If the command returns success=false, it means the taxi was not successfully booked,
     and the message field should contain an explanation for why it failed.
     """
+    print("Booking taxi:", params)
     return Result(success=True, booking_id="abc123")
 
 
-history = []
-while True:
-    result, history = assistant.speak(input(">>"), history=history)
-    pprint(history)
+def main():
+    history = []
+    while True:
+        _, history = assistant.speak(input(">>"), history=history)
+        pprint(history)
+
+
+if __name__ == "__main__":
+    main()

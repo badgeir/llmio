@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal, Optional, Callable, Type
 from dataclasses import dataclass
 import textwrap
 from datetime import datetime
@@ -7,6 +7,7 @@ from inspect import isclass, signature
 import jinja2
 import pydantic
 import openai
+from polyfactory.factories.pydantic_factory import ModelFactory
 
 from llmio import model, prompts
 
@@ -19,7 +20,7 @@ ENGINES = {
 
 @dataclass
 class Command:
-    function: callable
+    function: Callable
 
     @property
     def name(self):
@@ -48,23 +49,19 @@ class Command:
         }
 
     @property
-    def params(self):
+    def params(self) -> pydantic.BaseModel:
         if self.is_pydantic_input:
             return list(self.input_annotations.values())[0]
 
         return model.model_from_function(self.function)
 
     @property
-    def returns(self):
+    def returns(self) -> Type[pydantic.BaseModel]:
         annotation = self.function.__annotations__["return"]
         if isclass(annotation) and issubclass(annotation, pydantic.BaseModel):
             return annotation
-        else:
 
-            class Result(pydantic.BaseModel):
-                result: annotation
-
-            return Result
+        return pydantic.create_model("Result", result=(annotation, ...))
 
     @property
     def description(self):
@@ -104,15 +101,13 @@ class Command:
         return Model
 
     def mock_data(self):
-        from polyfactory.factories.pydantic_factory import ModelFactory
-
         class Mocker(ModelFactory):
             __model__ = self.command_model()
 
         return Mocker.build()
 
     def execute(self, params, state=None):
-        kwargs = dict()
+        kwargs = {}
         if "state" in signature(self.function).parameters:
             kwargs["state"] = state
 
@@ -141,7 +136,7 @@ class Assistant:
 
         self.engine = engine
         self.short_description = short_description
-        self.commands = []
+        self.commands: list[Command] = []
 
         if command_header is None:
             self.command_header = prompts.DEFAULT_COMMAND_HEADER
@@ -164,10 +159,12 @@ class Assistant:
             current_time=datetime.now().isoformat(),
         )
 
-    def _get_system_prompt(self) -> str:
+    def _get_system_prompt(self) -> dict[str, str]:
         return {"role": "system", "content": self.system_prompt()}
 
-    def create_prompt(self, message_history):
+    def create_prompt(
+        self, message_history: list[dict[str, str]]
+    ) -> list[dict[str, str]]:
         return [
             self._get_system_prompt(),
             *message_history,
@@ -203,10 +200,10 @@ class Assistant:
     def speak(
         self,
         message: str,
-        history: Optional[list] = None,
+        history: Optional[list[dict[str, str]]] = None,
         state=None,
         role="user",
-    ) -> str:
+    ) -> tuple[str, list[dict[str, str]]]:
         if history is None:
             history = []
         history = history[:]
@@ -228,14 +225,11 @@ class Assistant:
             }
         )
         for command in self.commands:
-            model = command.command_model()
+            cmd_model = command.command_model()
             try:
-                inputs = model.parse_raw(content)
-            except Exception as e:
-                print(e)
-                print("Not valid")
+                inputs = cmd_model.parse_raw(content)
+            except pydantic.ValidationError:
                 continue
-            print("Valid command!")
             result = command.execute(inputs.params, state=state)
             return self.speak(
                 result.json(),

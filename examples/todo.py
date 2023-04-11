@@ -7,7 +7,8 @@ from llmio.assistant import Assistant
 
 
 def get_token():
-    return open("/Users/peterleupi/.creds/openai").read().strip()
+    with open("/Users/peterleupi/.creds/openai", "r", encoding="utf-8") as f:
+        return f.read().strip()
 
 
 assistant = Assistant(
@@ -16,7 +17,7 @@ assistant = Assistant(
 )
 
 
-TODOS = collections.defaultdict(list)
+TODOS: dict[int, list[str]] = collections.defaultdict(list)
 
 
 @assistant.command()
@@ -30,8 +31,14 @@ def add_todo(todo: str, state: dict) -> str:
     return "Added todo."
 
 
-history = []
-while True:
-    state = {"conversation_id": 123}
-    result, history = assistant.speak(input(">>"), history=history, state=state)
-    pprint(history)
+def main():
+    history = []
+    while True:
+        state = {"conversation_id": 123}
+        _, history = assistant.speak(input(">>"), history=history, state=state)
+        pprint(history)
+
+
+if __name__ == "__main__":
+    print(assistant.system_prompt())
+    main()
