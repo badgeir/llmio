@@ -126,6 +126,7 @@ class Assistant:
         description: str,
         engine: str = "gpt-4",
         command_header: Optional[str] = None,
+        debug: bool = False,
     ):
         openai.api_key = key
 
@@ -135,6 +136,7 @@ class Assistant:
         self.engine = engine
         self.description = description
         self.commands: list[Command] = []
+        self.debug = debug
 
         if command_header is None:
             self.command_header = prompts.DEFAULT_COMMAND_HEADER
@@ -213,6 +215,10 @@ class Assistant:
                 kwargs["state"] = state
             inspector(content, **kwargs)
 
+    def log(self, *message):
+        if self.debug:
+            print(*message)
+
     def speak(
         self,
         message: str,
@@ -238,6 +244,7 @@ class Assistant:
             messages=prompt,
         )
         content = result["choices"][0]["message"]["content"]
+        self.log("Model output:", content)
         self._run_content_inspectors(content, state)
 
         history.append(
@@ -252,7 +259,9 @@ class Assistant:
                 inputs = cmd_model.parse_raw(content)
             except pydantic.ValidationError:
                 continue
+            self.log(f"Executing command {command.name}({inputs.params})")
             result = command.execute(inputs.params, state=state)
+            self.log("Result:", result)
             return self.speak(
                 result.json(),
                 history=history,
