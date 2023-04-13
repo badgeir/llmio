@@ -1,3 +1,4 @@
+import os
 from pprint import pprint
 import requests
 import bs4
@@ -5,13 +6,8 @@ import bs4
 from llmio.assistant import Assistant
 
 
-def get_token():
-    with open("/Users/peterleupi/.creds/openai", "r", encoding="utf-8") as f:
-        return f.read().strip()
-
-
 assistant = Assistant(
-    short_description="""
+    description="""
         You are a wikipedia bot. When asked a question, you can query a wikipedia page
         and answer based on the wikipedia content.
         Never answer based on your built-in knowledge,
@@ -19,11 +15,11 @@ assistant = Assistant(
         If the answer is not on the wikipedia page,
         politely decline to answer regardless of whether you already know it.
     """,
-    key=get_token(),
+    key=os.environ["OPENAI_TOKEN"],
 )
 
 
-@assistant.command()
+@assistant.command
 def get_wiki(url: str) -> str:
     """
     Fetches a wikipedia page based on its url,

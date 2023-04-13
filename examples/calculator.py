@@ -1,24 +1,21 @@
+import os
+
 from pprint import pprint
 
 from llmio.assistant import Assistant
 
 
-def get_token():
-    with open("/Users/peterleupi/.creds/openai", "r", encoding="utf-8") as f:
-        return f.read().strip()
-
-
 assistant = Assistant(
-    short_description="""
+    description="""
         You are a calculating assistant.
         Always use commands to calculate things.
         Never try to calculate things on your own.
         """,
-    key=get_token(),
+    key=os.environ["OPENAI_TOKEN"],
 )
 
 
-@assistant.command()
+@assistant.command
 def add(num1: float, num2: float) -> float:
     """
     Add two numbers.
@@ -26,7 +23,7 @@ def add(num1: float, num2: float) -> float:
     return num1 + num2
 
 
-@assistant.command()
+@assistant.command
 def multiply(num1: float, num2: float) -> float:
     """
     Multiply two numbers.
@@ -34,13 +31,13 @@ def multiply(num1: float, num2: float) -> float:
     return num1 * num2
 
 
-@assistant.inspect_prompt()
+@assistant.inspect_prompt
 def inspect_prompt(prompt):
     print("Inspecting prompt")
     pprint(prompt)
 
 
-@assistant.inspect_output()
+@assistant.inspect_output
 def inspect_output(output):
     print("Inspecting Output")
     pprint(output)
