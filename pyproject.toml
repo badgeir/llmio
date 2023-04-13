@@ -28,6 +28,11 @@ examples = [
     "bs4",
 ]
 
+[tool.hatch.build]
+include = [
+  "llmio",
+]
+
 [project.urls]
 "Homepage" = "https://github.com/badgeir/llmio"
 "Bug Tracker" = "https://github.com/badgeir/llmio/issues"
