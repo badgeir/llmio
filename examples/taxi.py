@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from typing import Optional
 from pprint import pprint
@@ -7,14 +8,9 @@ from pydantic import BaseModel, Field
 from llmio.assistant import Assistant
 
 
-def get_token():
-    with open("/Users/peterleupi/.creds/openai", "r", encoding="utf-8") as f:
-        return f.read().strip()
-
-
 assistant = Assistant(
-    short_description="You are Oslo Taxis taxi booking assistant.",
-    key=get_token(),
+    description="You are Oslo Taxis taxi booking assistant.",
+    key=os.environ["OPENAI_TOKEN"],
 )
 
 
@@ -32,7 +28,7 @@ class Result(BaseModel):
     message: Optional[str] = None
 
 
-@assistant.command()
+@assistant.command
 def book_taxi(params: BookTaxi) -> Result:
     """
     Execute a taxi booking order.

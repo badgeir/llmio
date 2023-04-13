@@ -123,7 +123,7 @@ class Assistant:
     def __init__(
         self,
         key: str,
-        short_description: str,
+        description: str,
         engine: str = "gpt-4",
         command_header: Optional[str] = None,
     ):
@@ -133,7 +133,7 @@ class Assistant:
             raise ValueError(f"Unknown engine {engine}")
 
         self.engine = engine
-        self.short_description = short_description
+        self.description = description
         self.commands: list[Command] = []
 
         if command_header is None:
@@ -144,17 +144,13 @@ class Assistant:
         self._prompt_inspectors: list[Callable] = []
         self._output_inspectors: list[Callable] = []
 
-    @property
-    def description(self) -> str:
-        return self.short_description
-
     def system_prompt(self) -> str:
         return jinja2.Template(
             prompts.DEFAULT_SYSTEM_PROMPT,
             trim_blocks=True,
             lstrip_blocks=True,
         ).render(
-            short_description=self.short_description,
+            description=self.description,
             command_header=self.command_header,
             commands=self.commands,
             current_time=datetime.now().isoformat(),
@@ -171,46 +167,37 @@ class Assistant:
             *message_history,
         ]
 
-    def command(self):
-        def wrapper(function: Callable):
-            input_annotations = {
-                name: annotation
-                for name, annotation in function.__annotations__.items()
-                if name not in {"return", "state"}
-            }
+    def command(self, function: Callable):
+        input_annotations = {
+            name: annotation
+            for name, annotation in function.__annotations__.items()
+            if name not in {"return", "state"}
+        }
 
-            assert (
-                len(input_annotations) == 1
-                and issubclass(list(input_annotations.values())[0], pydantic.BaseModel)
-            ) or (
-                not any(
-                    issubclass(annotation, pydantic.BaseModel)
-                    for annotation in input_annotations.values()
-                )
+        assert (
+            len(input_annotations) == 1
+            and issubclass(list(input_annotations.values())[0], pydantic.BaseModel)
+        ) or (
+            not any(
+                issubclass(annotation, pydantic.BaseModel)
+                for annotation in input_annotations.values()
             )
+        )
 
-            assert "return" in function.__annotations__
+        assert "return" in function.__annotations__
 
-            self.commands.append(
-                Command(function=function),
-            )
-            return function
+        self.commands.append(
+            Command(function=function),
+        )
+        return function
 
-        return wrapper
+    def inspect_prompt(self, function: Callable):
+        self._prompt_inspectors.append(function)
+        return function
 
-    def inspect_prompt(self):
-        def wrapper(function: Callable):
-            self._prompt_inspectors.append(function)
-            return function
-
-        return wrapper
-
-    def inspect_output(self):
-        def wrapper(function: Callable):
-            self._output_inspectors.append(function)
-            return function
-
-        return wrapper
+    def inspect_output(self, function: Callable):
+        self._output_inspectors.append(function)
+        return function
 
     def _run_prompt_inspectors(self, prompt: list[dict[str, str]], state) -> None:
         for inspector in self._prompt_inspectors:

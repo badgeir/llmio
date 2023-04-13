@@ -64,7 +64,7 @@ DEFAULT_COMMAND_PROMPT = textwrap.dedent(
 
 DEFAULT_SYSTEM_PROMPT = textwrap.dedent(
     """
-    {{short_description}}
+    {{description}}
 
     {{command_header}}
 
