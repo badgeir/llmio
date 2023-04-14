@@ -1,12 +1,12 @@
 from typing import Any, Callable, Dict, Mapping, Tuple
 from inspect import Parameter, signature
 
-from pydantic import create_model
+from pydantic import create_model, BaseModel
 from pydantic.typing import get_all_type_hints
 from pydantic.utils import to_camel
 
 
-def model_from_function(function: Callable):
+def model_from_function(function: Callable) -> type[BaseModel]:
     parameters: Mapping[str, Parameter] = signature(function).parameters
 
     type_hints = get_all_type_hints(function)
