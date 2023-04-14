@@ -33,6 +33,19 @@ include = [
   "llmio",
 ]
 
+[tool.pylint]
+max-line-length = 120
+extension-pkg-allow-list=[
+    "pydantic"
+]
+disable = [
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "too-many-arguments",
+    "invalid-name",
+]
+
 [project.urls]
 "Homepage" = "https://github.com/badgeir/llmio"
 "Bug Tracker" = "https://github.com/badgeir/llmio/issues"
