@@ -1,5 +1,5 @@
 test:
-	pytest tests
+	pytest tests -l -vv
 
 format:
 	black .
