@@ -5,6 +5,8 @@ on: push
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      OPENAI_TOKEN: ABC
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
