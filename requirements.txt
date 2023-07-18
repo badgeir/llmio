@@ -1,4 +1,4 @@
 openai
 fastapi
-pydantic
+pydantic==1.10.11
 jinja2
