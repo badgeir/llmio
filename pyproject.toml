@@ -44,8 +44,13 @@ disable = [
     "missing-function-docstring",
     "too-many-arguments",
     "invalid-name",
+    "too-many-locals",
+    "too-few-public-methods",
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/badgeir/llmio"
 "Bug Tracker" = "https://github.com/badgeir/llmio/issues"
+
+[tool.ruff]
+line-length = 120

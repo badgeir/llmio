@@ -11,6 +11,7 @@ from llmio.assistant import Assistant
 assistant = Assistant(
     description="You are Oslo Taxis taxi booking assistant.",
     key=os.environ["OPENAI_TOKEN"],
+    debug=True,
 )
 
 

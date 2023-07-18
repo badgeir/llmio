@@ -7,9 +7,8 @@ from inspect import isclass, signature
 import jinja2
 import pydantic
 import openai
-from polyfactory.factories.pydantic_factory import ModelFactory
 
-from llmio import model, prompts
+from llmio import model
 
 
 ENGINES = {
@@ -80,44 +79,6 @@ class Command:
             return ""
         return textwrap.dedent(self.function.__doc__).strip()
 
-    def explain(self) -> str:
-        return jinja2.Template(
-            prompts.DEFAULT_COMMAND_PROMPT,
-            trim_blocks=True,
-            lstrip_blocks=True,
-        ).render(
-            name=self.name,
-            description=self.description,
-            params=[
-                (
-                    key,
-                    value["type"],
-                    value.get("description", "-"),
-                    key in self.params.schema()["required"],
-                )
-                for key, value in self.params.schema()["properties"].items()
-            ],
-            returns=[
-                (key, value["type"], value.get("description", "-"))
-                for key, value in self.returns.schema()["properties"].items()
-            ],
-            mock_data=self.mock_data().json(),
-        )
-
-    def command_model(self) -> Type[CommandModel]:
-        return pydantic.create_model(
-            "Model",
-            __base__=CommandModel,
-            command=(Literal[self.name], ...),
-            params=(self.params, ...),
-        )
-
-    def mock_data(self) -> CommandModel:
-        class Mocker(ModelFactory):
-            __model__ = self.command_model()
-
-        return Mocker.build()
-
     def execute(self, params: pydantic.BaseModel, state=None):
         kwargs = {}
         if "state" in signature(self.function).parameters:
@@ -132,6 +93,14 @@ class Command:
             return result
         return self.returns(result=result)
 
+    def function_definition(self) -> dict:
+        schema = self.params.schema()
+        return {
+            "name": self.name,
+            "description": self.description,
+            "parameters": schema,
+        }
+
 
 class Assistant:
     def __init__(
@@ -139,7 +108,6 @@ class Assistant:
         key: str,
         description: str,
         engine: str = "gpt-4",
-        command_header: Optional[str] = None,
         debug: bool = False,
     ):
         openai.api_key = key
@@ -152,25 +120,15 @@ class Assistant:
         self.commands: list[Command] = []
         self.debug = debug
 
-        if command_header is None:
-            self.command_header = prompts.DEFAULT_COMMAND_HEADER
-        else:
-            self.command_header = command_header
-
         self._prompt_inspectors: list[Callable] = []
         self._output_inspectors: list[Callable] = []
 
     def system_prompt(self) -> str:
         return jinja2.Template(
-            prompts.DEFAULT_SYSTEM_PROMPT,
-            trim_blocks=True,
+            self.description,
             lstrip_blocks=True,
-        ).render(
-            description=self.description,
-            command_header=self.command_header,
-            commands=self.commands,
-            current_time=datetime.now().isoformat(),
-        )
+            trim_blocks=True,
+        ).render(current_time=datetime.now().isoformat())
 
     def _get_system_prompt(self) -> dict[str, str]:
         return {"role": "system", "content": self.system_prompt()}
@@ -238,48 +196,60 @@ class Assistant:
         message: str,
         history: Optional[list[dict[str, str]]] = None,
         state: Any = None,
-        role: Literal["user", "system"] = "user",
+        role: Literal["user", "system", "function"] = "user",
+        function_name: Optional[str] = None,
     ) -> tuple[str, list[dict[str, str]]]:
         if history is None:
             history = []
         history = history[:]
-        history.append(
-            {
-                "role": role,
-                "content": message,
-            }
-        )
+
+        new_message = {
+            "role": role,
+            "content": message,
+        }
+        if function_name:
+            assert role == "function"
+            new_message["name"] = function_name
+        history.append(new_message)
 
         prompt = self.create_prompt(history)
         self._run_prompt_inspectors(prompt, state)
 
+        function_definitions = [
+            command.function_definition() for command in self.commands
+        ]
+
         result = openai.ChatCompletion.create(
             model=self.engine,
             messages=prompt,
+            functions=function_definitions,
         )
-        content = result["choices"][0]["message"]["content"]
+        generated_message = result["choices"][0]["message"]
+        content = generated_message["content"]
+
         self.log("Model output:", content)
         self._run_content_inspectors(content, state)
 
-        history.append(
-            {
-                "role": "assistant",
-                "content": content,
-            }
-        )
-        for command in self.commands:
-            cmd_model = command.command_model()
-            try:
-                inputs = cmd_model.parse_raw(content)
-            except pydantic.ValidationError:
-                continue
-            self.log(f"Executing command {command.name}({inputs.params})")
-            result = command.execute(inputs.params, state=state)
+        history.append(generated_message)
+
+        if function_call := generated_message.get("function_call"):
+            function_name = function_call["name"]
+            arguments = function_call["arguments"]
+
+            command = [cmd for cmd in self.commands if cmd.name == function_name][0]
+
+            params = command.params.parse_raw(arguments)
+
+            self.log(f"Executing command {command.name}({params})")
+            result = command.execute(params, state=state)
             self.log("Result:", result)
+
             return self.speak(
-                result.json(),
+                message=result.json(),
+                role="function",
+                function_name=function_name,
                 history=history,
-                role="system",
                 state=state,
             )
+
         return content, history

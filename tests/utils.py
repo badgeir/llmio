@@ -6,10 +6,11 @@ import openai
 
 @contextlib.contextmanager
 def mocked_openai_reply(reply):
+    reply["role"] = "assistant"
     orig = openai.ChatCompletion.create
     try:
         openai.ChatCompletion.create = MagicMock(
-            return_value={"choices": [{"message": {"content": reply}}]}
+            return_value={"choices": [{"message": reply}]}
         )
         yield
     finally:
@@ -19,12 +20,13 @@ def mocked_openai_reply(reply):
 @contextlib.contextmanager
 def mocked_openai_replies(replies):
     orig = openai.ChatCompletion.create
+
+    for reply in replies:
+        reply["role"] = "assistant"
     try:
         with patch(
             "openai.ChatCompletion.create",
-            side_effect=[
-                {"choices": [{"message": {"content": reply}}]} for reply in replies
-            ],
+            side_effect=[{"choices": [{"message": reply}]} for reply in replies],
         ):
             yield
     finally:

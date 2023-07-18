@@ -2,7 +2,3 @@ openai
 fastapi
 pydantic
 jinja2
-polyfactory
-
-# examples
-bs4
