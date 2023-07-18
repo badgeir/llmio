@@ -5,3 +5,4 @@ pylint
 pytest
 types-requests
 types-beautifulsoup4
+bs4
