@@ -1,10 +1,8 @@
-from typing import Literal, Optional, Callable, Type, Any
+from typing import Literal, Optional, Callable, Type, Any, AsyncIterable
 from dataclasses import dataclass
 import textwrap
-from datetime import datetime
-from inspect import isclass, signature
+from inspect import signature, iscoroutinefunction
 
-import jinja2
 import pydantic
 import openai
 
@@ -31,46 +29,12 @@ class Command:
         return self.function.__name__
 
     @property
-    def is_pydantic_input(self) -> bool:
-        return bool(
-            len(self.input_annotations) == 1
-            and issubclass(self.pydantic_input, pydantic.BaseModel)
-        )
-
-    @property
-    def is_pydantic_output(self) -> bool:
-        annotation = self.function.__annotations__["return"]
-        if isclass(annotation) and issubclass(annotation, pydantic.BaseModel):
-            return True
-        return False
-
-    @property
-    def input_annotations(self) -> dict[str, type]:
-        return {
-            name: annotation
-            for name, annotation in self.function.__annotations__.items()
-            if name not in {"return", "state"}
-        }
-
-    @property
-    def pydantic_input(self) -> Type[pydantic.BaseModel]:
-        input_type = list(self.input_annotations.values())[0]
-        assert issubclass(input_type, pydantic.BaseModel)
-        return input_type
-
-    @property
     def params(self) -> Type[pydantic.BaseModel]:
-        if self.is_pydantic_input:
-            return self.pydantic_input
-
         return model.model_from_function(self.function)
 
     @property
     def returns(self) -> Type[pydantic.BaseModel]:
         annotation = self.function.__annotations__["return"]
-        if isclass(annotation) and issubclass(annotation, pydantic.BaseModel):
-            return annotation
-
         return pydantic.create_model("Result", result=(annotation, ...))
 
     @property
@@ -79,20 +43,19 @@ class Command:
             return ""
         return textwrap.dedent(self.function.__doc__).strip()
 
-    def execute(self, params: pydantic.BaseModel, state=None):
+    async def execute(self, params: pydantic.BaseModel, state=None):
         kwargs = {}
         if "state" in signature(self.function).parameters:
             kwargs["state"] = state
 
-        if self.is_pydantic_input:
-            result = self.function(params, **kwargs)
+        if iscoroutinefunction(self.function):
+            result = await self.function(**params.dict(), **kwargs)
         else:
             result = self.function(**params.dict(), **kwargs)
 
-        if self.is_pydantic_output:
-            return result
         return self.returns(result=result)
 
+    @property
     def function_definition(self) -> dict:
         schema = self.params.schema()
         return {
@@ -116,7 +79,7 @@ class Assistant:
             raise ValueError(f"Unknown engine {engine}")
 
         self.engine = engine
-        self.description = description
+        self.description = textwrap.dedent(description).strip()
         self.commands: list[Command] = []
         self.debug = debug
 
@@ -124,11 +87,7 @@ class Assistant:
         self._output_inspectors: list[Callable] = []
 
     def system_prompt(self) -> str:
-        return jinja2.Template(
-            self.description,
-            lstrip_blocks=True,
-            trim_blocks=True,
-        ).render(current_time=datetime.now().isoformat())
+        return self.description
 
     def _get_system_prompt(self) -> dict[str, str]:
         return {"role": "system", "content": self.system_prompt()}
@@ -142,24 +101,7 @@ class Assistant:
         ]
 
     def command(self, function: Callable) -> Callable:
-        input_annotations = {
-            name: annotation
-            for name, annotation in function.__annotations__.items()
-            if name not in {"return", "state"}
-        }
-
-        assert (
-            len(input_annotations) == 1
-            and issubclass(list(input_annotations.values())[0], pydantic.BaseModel)
-        ) or (
-            not any(
-                issubclass(annotation, pydantic.BaseModel)
-                for annotation in input_annotations.values()
-            )
-        )
-
         assert "return" in function.__annotations__
-
         self.commands.append(
             Command(function=function),
         )
@@ -180,7 +122,7 @@ class Assistant:
                 kwargs["state"] = state
             inspector(prompt, **kwargs)
 
-    def _run_content_inspectors(self, content: str, state: Any) -> None:
+    def _run_output_inspectors(self, content: str, state: Any) -> None:
         for inspector in self._output_inspectors:
             kwargs = {}
             if "state" in signature(inspector).parameters:
@@ -191,46 +133,53 @@ class Assistant:
         if self.debug:
             print(*message)
 
-    def speak(
+    async def speak(
         self,
-        message: str,
+        message: str | None = None,
         history: Optional[list[dict[str, str]]] = None,
         state: Any = None,
         role: Literal["user", "system", "function"] = "user",
         function_name: Optional[str] = None,
-    ) -> tuple[str, list[dict[str, str]]]:
+        retries=0,
+    ) -> AsyncIterable[tuple[str, list[dict[str, str]]]]:
         if history is None:
             history = []
         history = history[:]
 
-        new_message = {
-            "role": role,
-            "content": message,
-        }
-        if function_name:
-            assert role == "function"
-            new_message["name"] = function_name
-        history.append(new_message)
+        if message:
+            new_message = {
+                "role": role,
+                "content": message,
+            }
+            if function_name:
+                assert role == "function"
+                new_message["name"] = function_name
+            history.append(new_message)
 
         prompt = self.create_prompt(history)
         self._run_prompt_inspectors(prompt, state)
 
         function_definitions = [
-            command.function_definition() for command in self.commands
+            command.function_definition for command in self.commands
         ]
 
-        result = openai.ChatCompletion.create(
+        kwargs = {}
+        if function_definitions:
+            kwargs["functions"] = function_definitions
+
+        result = await openai.ChatCompletion.acreate(
             model=self.engine,
             messages=prompt,
-            functions=function_definitions,
+            **kwargs,
         )
         generated_message = result["choices"][0]["message"]
-        content = generated_message["content"]
-
-        self.log("Model output:", content)
-        self._run_content_inspectors(content, state)
+        self.log("Model output:", generated_message)
+        self._run_output_inspectors(generated_message, state)
 
         history.append(generated_message)
+
+        if generated_message["content"]:
+            yield generated_message["content"], history
 
         if function_call := generated_message.get("function_call"):
             function_name = function_call["name"]
@@ -238,18 +187,36 @@ class Assistant:
 
             command = [cmd for cmd in self.commands if cmd.name == function_name][0]
 
-            params = command.params.parse_raw(arguments)
+            try:
+                params = command.params.parse_raw(arguments)
+            except pydantic.ValidationError as e:
+                if retries > 1:
+                    yield "I am sorry, I encountered an error.", history
+                    return
+
+                error_message = (
+                    f"The argument validation failed for the function call to {command.name}: "
+                    + str(e)
+                )
+                async for ans, hist in self.speak(
+                    message=error_message,
+                    role="system",
+                    history=history,
+                    state=state,
+                    retries=retries + 1,
+                ):
+                    yield ans, hist
+                return
 
             self.log(f"Executing command {command.name}({params})")
-            result = command.execute(params, state=state)
+            result = await command.execute(params, state=state)
             self.log("Result:", result)
 
-            return self.speak(
+            async for ans, hist in self.speak(
                 message=result.json(),
                 role="function",
                 function_name=function_name,
                 history=history,
                 state=state,
-            )
-
-        return content, history
+            ):
+                yield ans, hist

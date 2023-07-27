@@ -1,9 +1,8 @@
+import asyncio
 import os
-from datetime import datetime
 from typing import Optional
-from pprint import pprint
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from llmio.assistant import Assistant
 
@@ -15,14 +14,6 @@ assistant = Assistant(
 )
 
 
-class BookTaxi(BaseModel):
-    n_passengers: int = Field(..., ge=1, le=10)
-    pickup_location: str
-    destination: str
-    pickup_time: datetime = Field(..., description="ISO formated time.")
-    additional_info: Optional[str]
-
-
 class Result(BaseModel):
     success: bool
     booking_id: Optional[str] = None
@@ -30,23 +21,34 @@ class Result(BaseModel):
 
 
 @assistant.command
-def book_taxi(params: BookTaxi) -> Result:
+def book_taxi(
+    n_passengers: int,
+    pickup_location: str,
+    destination: str,
+    additional_info: str | None,
+) -> Result:
     """
     Execute a taxi booking order.
     Make sure the user confirms the details before executing this command.
     If the command returns success=false, it means the taxi was not successfully booked,
     and the message field should contain an explanation for why it failed.
     """
-    print("Booking taxi:", params)
+    print(
+        f"""
+        Booking a taxi for {n_passengers} passengers
+        from {pickup_location} to {destination}.
+        {additional_info if additional_info else ""}
+    """
+    )
     return Result(success=True, booking_id="abc123")
 
 
-def main():
+async def main():
     history = []
     while True:
-        _, history = assistant.speak(input(">>"), history=history)
-        pprint(history)
+        async for answer, history in assistant.speak(input(">>"), history=history):
+            print(answer)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

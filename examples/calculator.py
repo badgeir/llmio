@@ -1,4 +1,6 @@
+import asyncio
 import os
+from pprint import pprint
 
 from llmio.assistant import Assistant
 
@@ -10,7 +12,8 @@ assistant = Assistant(
         Never try to calculate things on your own.
         """,
     key=os.environ["OPENAI_TOKEN"],
-    debug=True,
+    debug=False,
+    engine="gpt-3.5-turbo",
 )
 
 
@@ -20,16 +23,25 @@ def add(num1: float, num2: float) -> float:
 
 
 @assistant.command
-def multiply(num1: float, num2: float) -> float:
+async def multiply(num1: float, num2: float) -> float:
     return num1 * num2
 
 
-def main():
-    history = []
+@assistant.inspect_prompt
+def print_prompt(prompt: list[dict[str, str]]):
+    pprint(prompt)
+
+
+@assistant.inspect_output
+def print_model_output(output: dict):
+    pprint(output)
+
+
+async def main():
     while True:
-        reply, history = assistant.speak(input(">>"), history=history)
-        print(reply)
+        async for answer, _ in assistant.speak(input(">>")):
+            print(answer)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
