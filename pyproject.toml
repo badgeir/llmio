@@ -46,7 +46,6 @@ disable = [
     "invalid-name",
     "too-many-locals",
     "too-few-public-methods",
-    "duplicate-code",
 ]
 
 [project.urls]

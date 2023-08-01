@@ -4,8 +4,8 @@ from typing import Any
 
 from llmio.assistant import Assistant
 
-# pylint: disable
-assistant = Assistant(
+
+assistant = Assistant(  # pylint: disable=duplicate-code
     description="""
         You are a calculating assistant.
         Always use commands to calculate things.
