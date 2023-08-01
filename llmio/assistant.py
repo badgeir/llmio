@@ -1,4 +1,3 @@
-import asyncio
 from typing import Literal, Optional, Callable, Type, Any, AsyncIterator, Iterable
 from dataclasses import dataclass
 import textwrap
@@ -44,7 +43,7 @@ class Command:
             return ""
         return textwrap.dedent(self.function.__doc__).strip()
 
-    async def execute(self, params: pydantic.BaseModel, state=None):
+    async def aexecute(self, params: pydantic.BaseModel, state=None):
         kwargs = {}
         if "state" in signature(self.function).parameters:
             kwargs["state"] = state
@@ -54,6 +53,14 @@ class Command:
         else:
             result = self.function(**params.dict(), **kwargs)
 
+        return self.returns(result=result)
+
+    def execute(self, params: pydantic.BaseModel, state=None):
+        kwargs = {}
+        if "state" in signature(self.function).parameters:
+            kwargs["state"] = state
+
+        result = self.function(**params.dict(), **kwargs)
         return self.returns(result=result)
 
     @property
@@ -134,15 +141,13 @@ class Assistant:
         if self.debug:
             print(*message)
 
-    async def aspeak(
+    def create_history(
         self,
-        message: str | None = None,
-        history: Optional[list[dict[str, str]]] = None,
-        state: Any = None,
-        role: Literal["user", "system", "function"] = "user",
-        function_name: Optional[str] = None,
-        retries=0,
-    ) -> AsyncIterator[tuple[str, list[dict[str, str]]]]:
+        history: list[dict[str, str]] | None,
+        message: str | None,
+        role: str,
+        function_name: str | None,
+    ) -> list[dict[str, str]]:
         if history is None:
             history = []
         history = history[:]
@@ -156,17 +161,39 @@ class Assistant:
                 assert role == "function"
                 new_message["name"] = function_name
             history.append(new_message)
+        return history
 
-        prompt = self.create_prompt(history)
-        self._run_prompt_inspectors(prompt, state)
-
+    def get_function_kwargs(self) -> dict[str, Any]:
         function_definitions = [
             command.function_definition for command in self.commands
         ]
 
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if function_definitions:
             kwargs["functions"] = function_definitions
+        return kwargs
+
+    async def aspeak(
+        self,
+        message: str | None = None,
+        history: Optional[list[dict[str, str]]] = None,
+        state: Any = None,
+        role: Literal["user", "system", "function"] = "user",
+        function_name: Optional[str] = None,
+        retries=0,
+    ) -> AsyncIterator[tuple[str, list[dict[str, str]]]]:
+        history = self.create_history(
+            history,
+            message,
+            role,
+            function_name,
+        )
+
+        prompt = self.create_prompt(history)
+        self._run_prompt_inspectors(prompt, state)
+
+        # Needed because OpenAI rejects empty list of functions:
+        kwargs = self.get_function_kwargs()
 
         result = await openai.ChatCompletion.acreate(
             model=self.engine,
@@ -192,8 +219,7 @@ class Assistant:
                 params = command.params.parse_raw(arguments)
             except pydantic.ValidationError as e:
                 if retries > 1:
-                    yield "I am sorry, I encountered an error.", history
-                    return
+                    raise e
 
                 error_message = (
                     f"The argument validation failed for the function call to {command.name}: "
@@ -210,7 +236,7 @@ class Assistant:
                 return
 
             self.log(f"Executing command {command.name}({params})")
-            result = await command.execute(params, state=state)
+            result = await command.aexecute(params, state=state)
             self.log("Result:", result)
 
             async for ans, hist in self.aspeak(
@@ -231,17 +257,68 @@ class Assistant:
         function_name: Optional[str] = None,
         retries=0,
     ) -> Iterable[tuple[str, list[dict[str, str]]]]:
-        iterator = self.aspeak(
-            message=message,
-            history=history,
-            state=state,
-            role=role,
-            function_name=function_name,
-            retries=retries,
+        history = self.create_history(
+            history,
+            message,
+            role,
+            function_name,
         )
-        loop = asyncio.get_event_loop()
-        while True:
+
+        prompt = self.create_prompt(history)
+        self._run_prompt_inspectors(prompt, state)
+
+        # Needed because OpenAI rejects empty list of functions:
+        kwargs = self.get_function_kwargs()
+
+        result = openai.ChatCompletion.create(
+            model=self.engine,
+            messages=prompt,
+            **kwargs,
+        )
+        generated_message = result["choices"][0]["message"]
+        self.log("Model output:", generated_message)
+        self._run_output_inspectors(generated_message, state)
+
+        history.append(generated_message)
+
+        if generated_message["content"]:
+            yield generated_message["content"], history
+
+        if function_call := generated_message.get("function_call"):
+            function_name = function_call["name"]
+            arguments = function_call["arguments"]
+
+            command = [cmd for cmd in self.commands if cmd.name == function_name][0]
+
             try:
-                yield loop.run_until_complete(iterator.__anext__())
-            except StopAsyncIteration:
-                break
+                params = command.params.parse_raw(arguments)
+            except pydantic.ValidationError as e:
+                if retries > 1:
+                    raise e
+
+                error_message = (
+                    f"The argument validation failed for the function call to {command.name}: "
+                    + str(e)
+                )
+                for ans, hist in self.speak(
+                    message=error_message,
+                    role="system",
+                    history=history,
+                    state=state,
+                    retries=retries + 1,
+                ):
+                    yield ans, hist
+                return
+
+            self.log(f"Executing command {command.name}({params})")
+            result = command.execute(params, state=state)
+            self.log("Result:", result)
+
+            for ans, hist in self.speak(
+                message=result.json(),
+                role="function",
+                function_name=function_name,
+                history=history,
+                state=state,
+            ):
+                yield ans, hist

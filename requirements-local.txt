@@ -3,6 +3,7 @@ ruff
 mypy
 pylint
 pytest
+pytest-asyncio
 types-requests
 types-beautifulsoup4
 bs4
