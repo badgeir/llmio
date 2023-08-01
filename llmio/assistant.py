@@ -1,4 +1,5 @@
-from typing import Literal, Optional, Callable, Type, Any, AsyncIterable
+import asyncio
+from typing import Literal, Optional, Callable, Type, Any, AsyncIterator, Iterable
 from dataclasses import dataclass
 import textwrap
 from inspect import signature, iscoroutinefunction
@@ -133,7 +134,7 @@ class Assistant:
         if self.debug:
             print(*message)
 
-    async def speak(
+    async def aspeak(
         self,
         message: str | None = None,
         history: Optional[list[dict[str, str]]] = None,
@@ -141,7 +142,7 @@ class Assistant:
         role: Literal["user", "system", "function"] = "user",
         function_name: Optional[str] = None,
         retries=0,
-    ) -> AsyncIterable[tuple[str, list[dict[str, str]]]]:
+    ) -> AsyncIterator[tuple[str, list[dict[str, str]]]]:
         if history is None:
             history = []
         history = history[:]
@@ -198,7 +199,7 @@ class Assistant:
                     f"The argument validation failed for the function call to {command.name}: "
                     + str(e)
                 )
-                async for ans, hist in self.speak(
+                async for ans, hist in self.aspeak(
                     message=error_message,
                     role="system",
                     history=history,
@@ -212,7 +213,7 @@ class Assistant:
             result = await command.execute(params, state=state)
             self.log("Result:", result)
 
-            async for ans, hist in self.speak(
+            async for ans, hist in self.aspeak(
                 message=result.json(),
                 role="function",
                 function_name=function_name,
@@ -220,3 +221,27 @@ class Assistant:
                 state=state,
             ):
                 yield ans, hist
+
+    def speak(
+        self,
+        message: str | None = None,
+        history: Optional[list[dict[str, str]]] = None,
+        state: Any = None,
+        role: Literal["user", "system", "function"] = "user",
+        function_name: Optional[str] = None,
+        retries=0,
+    ) -> Iterable[tuple[str, list[dict[str, str]]]]:
+        iterator = self.aspeak(
+            message=message,
+            history=history,
+            state=state,
+            role=role,
+            function_name=function_name,
+            retries=retries,
+        )
+        loop = asyncio.get_event_loop()
+        while True:
+            try:
+                yield loop.run_until_complete(iterator.__anext__())
+            except StopAsyncIteration:
+                break

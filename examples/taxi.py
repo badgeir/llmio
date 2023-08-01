@@ -46,7 +46,7 @@ def book_taxi(
 async def main():
     history = []
     while True:
-        async for answer, history in assistant.speak(input(">>"), history=history):
+        async for answer, history in assistant.aspeak(input(">>"), history=history):
             print(answer)
 
 

@@ -1,10 +1,10 @@
-import asyncio
 import os
 from pprint import pprint
+from typing import Any
 
 from llmio.assistant import Assistant
 
-
+# pylint: disable
 assistant = Assistant(
     description="""
         You are a calculating assistant.
@@ -23,7 +23,7 @@ def add(num1: float, num2: float) -> float:
 
 
 @assistant.command
-async def multiply(num1: float, num2: float) -> float:
+def multiply(num1: float, num2: float) -> float:
     return num1 * num2
 
 
@@ -37,11 +37,8 @@ def print_model_output(output: dict):
     pprint(output)
 
 
-async def main():
-    while True:
-        async for answer, _ in assistant.aspeak(input(">>")):
-            print(answer)
-
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    history: list[dict[str, Any]] = []
+    while True:
+        for answer, history in assistant.speak(input(">>"), history=history):
+            print(answer)
