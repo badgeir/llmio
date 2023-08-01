@@ -22,11 +22,9 @@ import llmio
 
 assistant = llmio.Assistant(
     description="""
-    You are a calculator.
-    Always use the provided commands to perform calculations,
-    never try to calculate on your own.
-    When being given a math problem, do not explain the steps,
-    only execute them necessary commands and then present the answer.
+        You are a calculating assistant.
+        Always use commands to calculate things.
+        Never try to calculate things on your own.
     """,
     key="<openai-key>",
 )
