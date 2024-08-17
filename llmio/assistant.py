@@ -16,7 +16,7 @@ from openai.types.chat import (
 )
 from openai.types.chat.chat_completion_assistant_message_param import FunctionCall
 
-from llmio import model
+from llmio import function_parser
 
 
 class CommandModel(pydantic.BaseModel):
@@ -34,7 +34,7 @@ class Command:
 
     @property
     def params(self) -> Type[pydantic.BaseModel]:
-        return model.model_from_function(self.function)
+        return function_parser.model_from_function(self.function)
 
     @property
     def returns(self) -> Type[pydantic.BaseModel]:
