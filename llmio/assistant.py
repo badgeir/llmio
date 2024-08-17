@@ -47,7 +47,7 @@ class Command:
             return ""
         return textwrap.dedent(self.function.__doc__).strip()
 
-    async def aexecute(self, params: pydantic.BaseModel, state=None):
+    async def execute(self, params: pydantic.BaseModel, state=None):
         kwargs = {}
         if "state" in signature(self.function).parameters:
             kwargs["state"] = state
@@ -230,12 +230,13 @@ class Assistant:
         return kwargs
 
     async def get_completion(
-        self, messages: list[ChatCompletionMessageParam], **kwargs
+        self,
+        messages: list[ChatCompletionMessageParam],
     ) -> ChatCompletion:
         return await self.client.chat.completions.create(
             model=self.engine,
             messages=messages,
-            **kwargs,
+            **self.get_function_kwargs(),
         )
 
     async def speak(
@@ -257,13 +258,8 @@ class Assistant:
         prompt = self.create_prompt(history)
         self._run_prompt_inspectors(prompt, state)
 
-        # Needed because OpenAI rejects empty list of functions:
-        kwargs = self.get_function_kwargs()
-
         result = await self.get_completion(
-            model=self.engine,
             messages=prompt,
-            **kwargs,
         )
         generated_message = result.choices[0].message
         self.log("Model output:", generated_message)
@@ -304,7 +300,7 @@ class Assistant:
                 return
 
             self.log(f"Executing command {command.name}({params})")
-            result = await command.aexecute(params, state=state)
+            result = await command.execute(params, state=state)
             self.log("Result:", result)
 
             async for ans, hist in self.speak(
