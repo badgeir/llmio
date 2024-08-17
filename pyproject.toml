@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-openai = "0.27.1"
+openai = "^1.41.0"
 pydantic = "1.10.11"
 jinja2 = "^3.1.4"
 

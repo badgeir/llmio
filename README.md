@@ -17,46 +17,6 @@ pip install llmio
 # Example
 
 ``` python
-import llmio
-
-
-assistant = llmio.Assistant(
-    description="""
-        You are a calculating assistant.
-        Always use commands to calculate things.
-        Never try to calculate things on your own.
-    """,
-    key="<openai-key>",
-)
-
-
-@assistant.command
-def add(num1: float, num2: float) -> float:
-    """
-    Add two numbers
-    """
-    print(f"Adding {num1} + {num2}")
-    return num1 + num2
-
-
-@assistant.command
-def multiply(num1: float, num2: float) -> float:
-    """
-    Multiply two numbers
-    """
-    print(f"Multiplying {num1} * {num2}")
-    return num1 * num2
-
-
-history = []
-
-for reply, history in assistant.speak(input(">>"), history):
-    print(reply)
-```
-
-## Aync execution
-
-``` python
 
 import asyncio
 
@@ -85,7 +45,7 @@ async def multiply(num1: float, num2: float) -> float:
 async def main():
     history = []
 
-    async for reply, history in assistant.aspeak(input(">>"), history):
+    async for reply, history in assistant.speak(input(">>"), history):
         print(reply)
 
 

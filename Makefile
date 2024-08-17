@@ -5,7 +5,11 @@ format:
 	black .
 
 check:
-	ruff check . && pylint llmio examples && python -m mypy . && black . --check
+	ruff check . && python -m mypy.dmypy check . && black . --check
+
+check-pylint:
+	pylint llmio examples
+
 
 requirements:
 	poetry export > requirements.txt

@@ -4,7 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-import openai
+from openai.types.chat import ChatCompletion
+from openai.types.chat.chat_completion import Choice
 
 
 class FunctionCall(BaseModel):
@@ -19,28 +20,14 @@ class OpenAIResponse(BaseModel):
 
 
 @contextlib.contextmanager
-def mocked_async_openai_replies(*replies: OpenAIResponse):
-    async_orig = openai.ChatCompletion.acreate
-
-    try:
-        with patch(
-            "openai.ChatCompletion.acreate",
-            side_effect=[{"choices": [{"message": reply.dict()}]} for reply in replies],
-        ):
-            yield replies
-    finally:
-        openai.ChatCompletion.acreate = async_orig  # type: ignore
-
-
-@contextlib.contextmanager
-def mocked_openai_replies(*replies: OpenAIResponse):
-    orig = openai.ChatCompletion.create
-
-    try:
-        with patch(
-            "openai.ChatCompletion.create",
-            side_effect=[{"choices": [{"message": reply.dict()}]} for reply in replies],
-        ):
-            yield replies
-    finally:
-        openai.ChatCompletion.create = orig  # type: ignore
+def mocked_async_openai_replies(
+    replies: list[OpenAIResponse],
+):
+    with patch(
+        "llmio.Assistant.get_completion",
+        side_effect=[
+            ChatCompletion.construct(choices=[Choice.construct(message=reply)])
+            for reply in replies
+        ],
+    ):
+        yield replies
