@@ -9,11 +9,6 @@ import openai
 from llmio import model
 
 
-ENGINES = {
-    "gpt-3.5-turbo",
-    "gpt-4",
-}
-
 
 class CommandModel(pydantic.BaseModel):
     command: str
@@ -82,10 +77,6 @@ class Assistant:
         debug: bool = False,
     ):
         openai.api_key = key
-
-        if engine not in ENGINES:
-            raise ValueError(f"Unknown engine {engine}")
-
         self.engine = engine
         self.description = textwrap.dedent(description).strip()
         self.commands: list[Command] = []
