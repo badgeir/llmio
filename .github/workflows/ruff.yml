@@ -12,4 +12,4 @@ jobs:
         python-version: '3.10'
     - run: pip install -r requirements-local.txt --no-deps
     - run: pip install -r requirements.txt --no-deps
-    - run: ruff .
+    - run: ruff check .
