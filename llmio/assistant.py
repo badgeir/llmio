@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Callable, Type, Any, AsyncIterator
+from typing import Callable, Type, Any, AsyncIterator
 from dataclasses import dataclass
 import textwrap
 from inspect import signature, iscoroutinefunction
@@ -91,9 +91,7 @@ class Assistant:
         return self.description
 
     def _get_system_prompt(self) -> ChatCompletionSystemMessageParam:
-        return ChatCompletionSystemMessageParam(
-            {"role": "system", "content": self.system_prompt()}
-        )
+        return self._create_system_message(self.system_prompt())
 
     def create_prompt(
         self, message_history: list[ChatCompletionMessageParam]
@@ -176,49 +174,6 @@ class Assistant:
             case _:
                 raise ValueError(completion.role)
 
-    def create_history(
-        self,
-        history: list[ChatCompletionMessageParam] | None,
-        message: str | None,
-        role: str,
-        function_name: str | None,
-    ) -> list[ChatCompletionMessageParam]:
-        if history is None:
-            history = []
-        history = history[:]
-
-        if message:
-            new_message: ChatCompletionMessageParam
-            match role:
-                case "user":
-                    new_message = ChatCompletionUserMessageParam(
-                        {
-                            "role": role,
-                            "content": message,
-                        }
-                    )
-                case "assistant":
-                    new_message = ChatCompletionAssistantMessageParam(
-                        {
-                            "role": role,
-                            "content": message,
-                        }
-                    )
-                case "function":
-                    assert function_name is not None
-                    new_message = ChatCompletionFunctionMessageParam(
-                        {
-                            "role": role,
-                            "content": message,
-                            "name": function_name,
-                        }
-                    )
-                case _:
-                    raise ValueError(role)
-
-            history.append(new_message)
-        return history
-
     def get_function_kwargs(self) -> dict[str, Any]:
         function_definitions = [
             command.function_definition for command in self.commands
@@ -239,22 +194,55 @@ class Assistant:
             **self.get_function_kwargs(),
         )
 
-    async def speak(
-        self,
-        message: str | None = None,
-        history: Optional[list[ChatCompletionMessageParam]] = None,
-        state: Any = None,
-        role: Literal["user", "system", "function"] = "user",
-        function_name: Optional[str] = None,
-        retries=0,
-    ) -> AsyncIterator[tuple[str, list[ChatCompletionMessageParam]]]:
-        history = self.create_history(
-            history,
-            message,
-            role,
-            function_name,
+    def _create_user_message(self, message: str) -> ChatCompletionUserMessageParam:
+        return ChatCompletionUserMessageParam(
+            {
+                "role": "user",
+                "content": message,
+            }
         )
 
+    def _create_function_message(
+        self, function_name: str, content: str
+    ) -> ChatCompletionFunctionMessageParam:
+        return ChatCompletionFunctionMessageParam(
+            {
+                "role": "function",
+                "content": content,
+                "name": function_name,
+            }
+        )
+
+    def _create_system_message(self, message: str) -> ChatCompletionSystemMessageParam:
+        return ChatCompletionSystemMessageParam(
+            {
+                "role": "system",
+                "content": message,
+            }
+        )
+
+    async def speak(
+        self,
+        message: str,
+        history: list[ChatCompletionMessageParam] | None = None,
+        state: Any = None,
+    ) -> AsyncIterator[tuple[str, list[ChatCompletionMessageParam]]]:
+        if not history:
+            history = []
+        history.append(self._create_user_message(message))
+        async for ans, hist in self.iterate(
+            history=history,
+            state=state,
+        ):
+            yield ans, hist
+        return
+
+    async def iterate(
+        self,
+        history: list[ChatCompletionMessageParam],
+        state: Any = None,
+        retries=0,
+    ) -> AsyncIterator[tuple[str, list[ChatCompletionMessageParam]]]:
         prompt = self.create_prompt(history)
         self._run_prompt_inspectors(prompt, state)
 
@@ -265,10 +253,7 @@ class Assistant:
         self.log("Model output:", generated_message)
         self._run_output_inspectors(generated_message, state)
 
-        new_message: ChatCompletionMessageParam = self.parse_completion(
-            generated_message
-        )
-        history.append(new_message)
+        history.append(self.parse_completion(generated_message))
 
         if generated_message.content:
             yield generated_message.content, history
@@ -289,9 +274,12 @@ class Assistant:
                     f"The argument validation failed for the function call to {command.name}: "
                     + str(e)
                 )
-                async for ans, hist in self.speak(
-                    message=error_message,
-                    role="system",
+                history.append(
+                    self._create_system_message(
+                        error_message,
+                    )
+                )
+                async for ans, hist in self.iterate(
                     history=history,
                     state=state,
                     retries=retries + 1,
@@ -303,10 +291,13 @@ class Assistant:
             result = await command.execute(params, state=state)
             self.log("Result:", result)
 
-            async for ans, hist in self.speak(
-                message=result.json(),
-                role="function",
-                function_name=function_name,
+            history.append(
+                self._create_function_message(
+                    function_name=function_name,
+                    content=result.json(),
+                )
+            )
+            async for ans, hist in self.iterate(
                 history=history,
                 state=state,
             ):
