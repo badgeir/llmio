@@ -1,38 +1,29 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-
-[project]
+[tool.poetry]
 name = "llmio"
-version = "0.0.1"
-authors = [
-  { name="Peter Leupi", email="pleupi123@gmail.com" },
-]
+version = "0.1.0"
 description = "Easily connect large language models into your application"
+authors = ["Peter Leupi"]
+license = "MIT"
 readme = "README.md"
-requires-python = ">=3.10"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
-dependencies = [
-    "openai",
-    "pydantic",
-    "jinja2",
-    "polyfactory",
-]
-[project.optional-dependencies]
-examples = [
-    "bs4",
-]
 
-[tool.hatch.build]
-include = [
-  "llmio",
-]
+[tool.poetry.dependencies]
+python = "^3.10"
+openai = "0.27.1"
+pydantic = "1.10.11"
+jinja2 = "^3.1.4"
 
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.8.0"
+ruff = "^0.6.1"
+mypy = "^1.11.1"
+pylint = "^3.2.6"
+pytest = "^8.3.2"
+pytest-asyncio = "^0.23.8"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 [tool.pylint]
 max-line-length = 120
 extension-pkg-allow-list=[
@@ -47,10 +38,6 @@ disable = [
     "too-many-locals",
     "too-few-public-methods",
 ]
-
-[project.urls]
-"Homepage" = "https://github.com/badgeir/llmio"
-"Bug Tracker" = "https://github.com/badgeir/llmio/issues"
 
 [tool.ruff]
 line-length = 120

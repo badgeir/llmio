@@ -13,7 +13,7 @@ assistant = Assistant(  # pylint: disable=duplicate-code
         """,
     key=os.environ["OPENAI_TOKEN"],
     debug=False,
-    engine="gpt-3.5-turbo",
+    engine="gpt-4o-mini",
 )
 
 
