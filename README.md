@@ -20,8 +20,18 @@ pip install llmio
 
 import asyncio
 
-# Create Assistant as before
-...
+from llmio import Assistant
+
+
+assistant = Assistant(
+    instruction="""
+        You are a calculating assistant.
+        Always use commands to calculate things.
+        Never try to calculate things on your own.
+        """,
+    key=os.environ["OPENAI_TOKEN"],
+    model="gpt-4o-mini",
+)
 
 
 @assistant.command

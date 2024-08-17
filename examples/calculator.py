@@ -6,14 +6,13 @@ from llmio.assistant import Assistant
 
 
 assistant = Assistant(
-    description="""
+    instruction="""
         You are a calculating assistant.
         Always use commands to calculate things.
         Never try to calculate things on your own.
         """,
     key=os.environ["OPENAI_TOKEN"],
-    debug=False,
-    engine="gpt-4o-mini",
+    model="gpt-4o-mini",
 )
 
 

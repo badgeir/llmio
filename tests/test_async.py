@@ -10,7 +10,7 @@ from openai.types.chat.chat_completion_message import (
 
 
 async def test_async_basics():
-    assistant = Assistant(key="abc", description="You are a calculator")
+    assistant = Assistant(key="abc", instruction="You are a calculator")
 
     @assistant.command
     async def add(num1: float, num2: float) -> float:
