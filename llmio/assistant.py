@@ -73,14 +73,12 @@ class Assistant:
     def __init__(
         self,
         key: str,
-        description: str,
-        engine: str = "gpt-4",
-        debug: bool = False,
+        instruction: str,
+        model: str = "gpt-4",
     ):
-        self.engine = engine
-        self.description = textwrap.dedent(description).strip()
+        self.model = model
+        self.instruction = textwrap.dedent(instruction).strip()
         self.commands: list[Command] = []
-        self.debug = debug
 
         self._prompt_inspectors: list[Callable] = []
         self._output_inspectors: list[Callable] = []
@@ -88,7 +86,7 @@ class Assistant:
         self.client = openai.AsyncOpenAI(api_key=key)
 
     def system_prompt(self) -> str:
-        return self.description
+        return self.instruction
 
     def _get_system_prompt(self) -> ChatCompletionSystemMessageParam:
         return self._create_system_message(self.system_prompt())
@@ -131,10 +129,6 @@ class Assistant:
             if "state" in signature(inspector).parameters:
                 kwargs["state"] = state
             inspector(content, **kwargs)
-
-    def log(self, *message: Any) -> None:
-        if self.debug:
-            print(*message)
 
     @staticmethod
     def parse_completion(
@@ -189,7 +183,7 @@ class Assistant:
         messages: list[ChatCompletionMessageParam],
     ) -> ChatCompletion:
         return await self.client.chat.completions.create(
-            model=self.engine,
+            model=self.model,
             messages=messages,
             **self.get_function_kwargs(),
         )
@@ -250,7 +244,6 @@ class Assistant:
             messages=prompt,
         )
         generated_message = result.choices[0].message
-        self.log("Model output:", generated_message)
         self._run_output_inspectors(generated_message, state)
 
         history.append(self.parse_completion(generated_message))
@@ -287,9 +280,7 @@ class Assistant:
                     yield ans, hist
                 return
 
-            self.log(f"Executing command {command.name}({params})")
             result = await command.execute(params, state=state)
-            self.log("Result:", result)
 
             history.append(
                 self._create_function_message(
