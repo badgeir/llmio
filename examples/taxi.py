@@ -21,7 +21,7 @@ class Result(BaseModel):
     message: Optional[str] = None
 
 
-@assistant.command
+@assistant.command()
 def book_taxi(
     n_passengers: int,
     pickup_location: str,
