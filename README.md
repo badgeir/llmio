@@ -6,7 +6,7 @@
 ![ruff](https://github.com/badgeir/llmio/actions/workflows/ruff.yml/badge.svg)
 ![tests](https://github.com/badgeir/llmio/actions/workflows/test.yml/badge.svg)
 
-llmio is a lightweight library that uses type annotations to enable tool execution with OpenAI-compatible APIs (such as OpenAI, Azure OpenAI, AWS Bedrock Access Gateway and Huggingface TGI).
+llmio is a lightweight library that uses type annotations to enable tool execution with OpenAI-compatible APIs such as OpenAI, Azure OpenAI, AWS Bedrock Access Gateway and Huggingface TGI.
 
 # Setup
 
