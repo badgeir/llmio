@@ -60,7 +60,12 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-## Details
+### More examples
+
+For more examples, see `examples/`.
+
+
+# Details
 
 Under the hood, `llmio` uses type annotations to build function schemas compatible with OpenAI tools.
 
@@ -196,8 +201,3 @@ async def main() -> None:
         print(reply)
 
 ```
-
-
-### More examples
-
-For more examples, see `examples/`.
