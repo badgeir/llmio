@@ -9,7 +9,7 @@ from llmio.assistant import Assistant
 assistant = Assistant(
     instruction="""
         You are a calculating assistant.
-        Always use commands to calculate things.
+        Always use tools to calculate things.
         Never try to calculate things on your own.
         """,
     client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
@@ -17,12 +17,12 @@ assistant = Assistant(
 )
 
 
-@assistant.command()
+@assistant.tool()
 def add(num1: float, num2: float) -> float:
     return num1 + num2
 
 
-@assistant.command()
+@assistant.tool()
 async def multiply(num1: float, num2: float) -> float:
     return num1 * num2
 

@@ -36,13 +36,13 @@ assistant = Assistant(
 )
 
 
-@assistant.command()
+@assistant.tool()
 async def add(num1: float, num2: float) -> float:
     print(f"Adding {num1} + {num2}")
     return num1 + num2
 
 
-@assistant.command()
+@assistant.tool()
 async def multiply(num1: float, num2: float) -> float:
     print(f"Multiplying {num1} * {num2}")
     return num1 * num2
@@ -72,10 +72,10 @@ Under the hood, `llmio` uses type annotations to build function schemas compatib
 It also builds pydantic models in order to validate the input types of the arguments passed by the language model.
 
 ``` python
-@assistant.command()
+@assistant.tool()
 async def add(num1: float, num2: float) -> float:
     """
-    The docstring is used as the description of the command.
+    The docstring is used as the description of the tool.
     """
     return num1 + num2
 
@@ -85,10 +85,10 @@ print(assistant.summary())
 
 Output:
 ``` plaintext
-Commands:
+Tools:
   - add
     Schema:
-      {'description': 'The docstring is used as the description of the command.',
+      {'description': 'The docstring is used as the description of the tool.',
        'name': 'add',
        'parameters': {'properties': {'num1': {'type': 'number'},
                                      'num2': {'type': 'number'}},
@@ -102,7 +102,7 @@ Commands:
 `pydantic.Field` can be used to describe parameters in detail.
 
 ``` python
-@assistant.command()
+@assistant.tool()
 async def book_flight(
     destination: str = Field(..., description="The destination airport"),
     origin: str = Field(..., description="The origin airport"),
@@ -118,7 +118,7 @@ print(assistant.summary())
 
 Output:
 ``` plaintext
-Commands:
+Tools:
   - book_flight
     Schema:
       {'description': 'Books a flight',
@@ -143,7 +143,7 @@ Commands:
 Optional parameters are supported.
 
 ``` python
-@assistant.command()
+@assistant.tool()
 async def create_task(name: str = "My task", description: str | None = None) -> str:
     return "Created task"
 ```
@@ -168,9 +168,9 @@ def print_model_output(output: Message):
     pprint(output)
 ``` 
 
-### Pass a state to keep track of context in commands and hooks
+### Pass a state to keep track of context in tools and hooks
 
-Pass a state of any type to the assistant to keep track of context. This state will only be passed to commands and inspectors that include the special argument `_state`, not to the model itself.
+Pass a state of any type to the assistant to keep track of context. This state will only be passed to tools and inspectors that include the special argument `_state`, not to the model itself.
 
 ``` python
 @dataclass
@@ -179,7 +179,7 @@ class User:
     name: str
 
 
-@assistant.command()
+@assistant.tool()
 async def create_task(task_name: str, _state: User) -> str:
     print(f"Created task {task_name} for user {_state.id}")
     return "Created task"

@@ -21,7 +21,7 @@ class Result(BaseModel):
     message: Optional[str] = None
 
 
-@assistant.command()
+@assistant.tool()
 def book_taxi(
     n_passengers: int,
     pickup_location: str,
@@ -30,8 +30,8 @@ def book_taxi(
 ) -> Result:
     """
     Execute a taxi booking order.
-    Make sure the user confirms the details before executing this command.
-    If the command returns success=false, it means the taxi was not successfully booked,
+    Make sure the user confirms the details before executing this tool.
+    If the tool returns success=false, it means the taxi was not successfully booked,
     and the message field should contain an explanation for why it failed.
     """
     print(

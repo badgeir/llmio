@@ -26,7 +26,7 @@ async def test_state() -> None:
         id: str
         name: str
 
-    @assistant.command()
+    @assistant.tool()
     async def set_reminder(
         description: str, datetime_iso: datetime, _state: User
     ) -> str:
