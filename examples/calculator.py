@@ -3,7 +3,7 @@ import os
 from pprint import pprint
 
 import openai
-from llmio.assistant import Assistant, ChatCompletionMessage
+from llmio.assistant import Assistant, Message
 
 
 assistant = Assistant(
@@ -28,13 +28,13 @@ async def multiply(num1: float, num2: float) -> float:
 
 
 @assistant.inspect_prompt
-def print_prompt(prompt: list[dict[str, str]]):
+def print_prompt(prompt: list[Message]):
     print("Prompt:")
     pprint(prompt)
 
 
 @assistant.inspect_output
-def print_model_output(output: ChatCompletionMessage):
+def print_model_output(output: Message):
     print("Model output:")
     pprint(output)
 
