@@ -7,8 +7,6 @@ from llmio.assistant import Assistant
 assistant = Assistant(
     instruction="""
         You are a calculating assistant.
-        Always use tools to calculate things.
-        Never try to calculate things on your own.
         """,
     client=openai.AsyncAzureOpenAI(
         api_key="<your-api-key",
