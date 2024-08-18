@@ -27,6 +27,10 @@ async def multiply(num1: float, num2: float) -> float:
     return num1 * num2
 
 
+for command in assistant.commands:
+    pprint(command.tool_definition)
+
+
 @assistant.inspect_prompt
 def print_prompt(prompt: list[dict[str, str]]):
     pprint(prompt)
