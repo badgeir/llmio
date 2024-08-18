@@ -23,6 +23,8 @@ from llmio import function_parser
 
 State = TypeVar("State")
 
+_STATE_ARG_NAME = "_state"
+
 
 @dataclass
 class _Command:
@@ -50,8 +52,8 @@ class _Command:
 
     async def execute(self, params: pydantic.BaseModel, state: State | None):
         kwargs = {}
-        if "_state" in signature(self.function).parameters:
-            kwargs["_state"] = state
+        if _STATE_ARG_NAME in signature(self.function).parameters:
+            kwargs[_STATE_ARG_NAME] = state
 
         if iscoroutinefunction(self.function):
             result = await self.function(**params.dict(), **kwargs)
@@ -124,15 +126,15 @@ class Assistant:
     ) -> None:
         for inspector in self._prompt_inspectors:
             kwargs = {}
-            if "_state" in signature(inspector).parameters:
-                kwargs["_state"] = state
+            if _STATE_ARG_NAME in signature(inspector).parameters:
+                kwargs[_STATE_ARG_NAME] = state
             inspector(prompt, **kwargs)
 
     def _run_output_inspectors(self, content: Any, state: State | None) -> None:
         for inspector in self._output_inspectors:
             kwargs = {}
-            if "_state" in signature(inspector).parameters:
-                kwargs["_state"] = state
+            if _STATE_ARG_NAME in signature(inspector).parameters:
+                kwargs[_STATE_ARG_NAME] = state
             inspector(content, **kwargs)
 
     @staticmethod
