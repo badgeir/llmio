@@ -9,24 +9,21 @@ from openai.types.chat import (
     ChatCompletion,
     ChatCompletionMessage,
     ChatCompletionMessageParam,
-    ChatCompletionFunctionMessageParam,
+    ChatCompletionToolMessageParam,
     ChatCompletionAssistantMessageParam,
     ChatCompletionUserMessageParam,
     ChatCompletionSystemMessageParam,
+    ChatCompletionMessageToolCallParam,
 )
-from openai.types.chat.chat_completion_assistant_message_param import FunctionCall
+from openai.types.chat.chat_completion_message_tool_call_param import Function
 
 from llmio import function_parser
 
 
-class CommandModel(pydantic.BaseModel):
-    command: str
-    params: Any
-
-
 @dataclass
-class Command:
+class _Command:
     function: Callable
+    strict: bool = False
 
     @property
     def name(self) -> str:
@@ -60,12 +57,13 @@ class Command:
         return self.returns(result=result)
 
     @property
-    def function_definition(self) -> dict:
+    def tool_definition(self) -> dict:
         schema = self.params.schema()
         return {
             "name": self.name,
             "description": self.description,
             "parameters": schema,
+            "strict": self.strict,
         }
 
 
@@ -80,18 +78,15 @@ class Assistant:
         self.client = client
 
         self.instruction = textwrap.dedent(instruction).strip()
-        self.commands: list[Command] = []
 
+        self.commands: list[_Command] = []
         self._prompt_inspectors: list[Callable] = []
         self._output_inspectors: list[Callable] = []
 
-    def system_prompt(self) -> str:
-        return self.instruction
-
     def _get_system_prompt(self) -> ChatCompletionSystemMessageParam:
-        return self._create_system_message(self.system_prompt())
+        return self._create_system_message(self.instruction)
 
-    def create_prompt(
+    def _create_prompt(
         self, message_history: list[ChatCompletionMessageParam]
     ) -> list[ChatCompletionMessageParam]:
         return [
@@ -99,12 +94,15 @@ class Assistant:
             *message_history,
         ]
 
-    def command(self, function: Callable) -> Callable:
-        assert "return" in function.__annotations__
-        self.commands.append(
-            Command(function=function),
-        )
-        return function
+    def command(self, strict: bool = False) -> Callable:
+        def decorator(function: Callable) -> Callable:
+            assert "return" in function.__annotations__
+            self.commands.append(
+                _Command(function=function, strict=strict),
+            )
+            return function
+
+        return decorator
 
     def inspect_prompt(self, function: Callable) -> Callable:
         self._prompt_inspectors.append(function)
@@ -131,61 +129,52 @@ class Assistant:
             inspector(content, **kwargs)
 
     @staticmethod
-    def parse_completion(
+    def _parse_completion(
         completion: ChatCompletionMessage,
-    ) -> ChatCompletionMessageParam:
-        match completion.role:
-            case "user":
-                return ChatCompletionUserMessageParam(
-                    {
-                        "role": completion.role,
-                        "content": completion.message,
-                    }
-                )
-            case "assistant":
-                return ChatCompletionAssistantMessageParam(
-                    {
-                        "role": completion.role,
-                        "content": completion.content,
-                        "function_call": (
-                            FunctionCall(
-                                name=completion.function_call.name,
-                                arguments=completion.function_call.arguments,
-                            )
-                            if completion.function_call
-                            else None
-                        ),
-                    }
-                )
-            case "function":
-                return ChatCompletionFunctionMessageParam(
-                    {
-                        "role": completion.role,
-                        "content": completion.content,
-                        "name": completion.name,
-                    }
-                )
-            case _:
-                raise ValueError(completion.role)
+    ) -> ChatCompletionAssistantMessageParam:
+        return ChatCompletionAssistantMessageParam(
+            {
+                "role": completion.role,
+                "content": completion.content,
+                "tool_calls": (
+                    [
+                        ChatCompletionMessageToolCallParam(
+                            {
+                                "id": tool_call.id,
+                                "type": tool_call.type,
+                                "function": Function(
+                                    {
+                                        "name": tool_call.function.name,
+                                        "arguments": tool_call.function.arguments,
+                                    }
+                                ),
+                            }
+                        )
+                        for tool_call in completion.tool_calls
+                    ]
+                    if completion.tool_calls
+                    else []
+                ),
+            }
+        )
 
-    def get_function_kwargs(self) -> dict[str, Any]:
-        function_definitions = [
-            command.function_definition for command in self.commands
-        ]
-
+    def _get_tool_kwargs(self) -> dict[str, Any]:
         kwargs: dict[str, Any] = {}
-        if function_definitions:
-            kwargs["functions"] = function_definitions
+        if tool_definitions := [
+            {"type": "function", "function": command.tool_definition}
+            for command in self.commands
+        ]:
+            kwargs["tools"] = tool_definitions
         return kwargs
 
-    async def get_completion(
+    async def _get_completion(
         self,
         messages: list[ChatCompletionMessageParam],
     ) -> ChatCompletion:
         return await self.client.chat.completions.create(
             model=self.model,
             messages=messages,
-            **self.get_function_kwargs(),
+            **self._get_tool_kwargs(),
         )
 
     def _create_user_message(self, message: str) -> ChatCompletionUserMessageParam:
@@ -197,13 +186,13 @@ class Assistant:
         )
 
     def _create_function_message(
-        self, function_name: str, content: str
-    ) -> ChatCompletionFunctionMessageParam:
-        return ChatCompletionFunctionMessageParam(
+        self, tool_call_id: str, content: str
+    ) -> ChatCompletionToolMessageParam:
+        return ChatCompletionToolMessageParam(
             {
-                "role": "function",
+                "role": "tool",
                 "content": content,
-                "name": function_name,
+                "tool_call_id": tool_call_id,
             }
         )
 
@@ -224,72 +213,66 @@ class Assistant:
         if not history:
             history = []
         history.append(self._create_user_message(message))
-        async for ans, hist in self.iterate(
+        async for ans, hist in self._iterate(
             history=history,
             state=state,
         ):
             yield ans, hist
         return
 
-    async def iterate(
+    async def _iterate(
         self,
         history: list[ChatCompletionMessageParam],
         state: Any = None,
-        retries=0,
     ) -> AsyncIterator[tuple[str, list[ChatCompletionMessageParam]]]:
-        prompt = self.create_prompt(history)
+        prompt = self._create_prompt(history)
         self._run_prompt_inspectors(prompt, state)
 
-        result = await self.get_completion(
+        result = await self._get_completion(
             messages=prompt,
         )
         generated_message = result.choices[0].message
         self._run_output_inspectors(generated_message, state)
 
-        history.append(self.parse_completion(generated_message))
+        history.append(self._parse_completion(generated_message))
 
         if generated_message.content:
             yield generated_message.content, history
 
-        if function_call := generated_message.function_call:
-            function_name = function_call.name
-            arguments = function_call.arguments
+        if not generated_message.tool_calls:
+            return
 
-            command = [cmd for cmd in self.commands if cmd.name == function_name][0]
+        for tool_call in generated_message.tool_calls:
+            command = [
+                cmd for cmd in self.commands if cmd.name == tool_call.function.name
+            ][0]
 
             try:
-                params = command.params.parse_raw(arguments)
+                params = command.params.parse_raw(tool_call.function.arguments)
             except pydantic.ValidationError as e:
-                if retries > 1:
-                    raise e
-
                 error_message = (
                     f"The argument validation failed for the function call to {command.name}: "
                     + str(e)
                 )
                 history.append(
-                    self._create_system_message(
-                        error_message,
+                    self._create_function_message(
+                        tool_call_id=tool_call.id,
+                        content=error_message,
                     )
                 )
-                async for ans, hist in self.iterate(
-                    history=history,
-                    state=state,
-                    retries=retries + 1,
-                ):
-                    yield ans, hist
-                return
+                continue
 
             result = await command.execute(params, state=state)
 
             history.append(
                 self._create_function_message(
-                    function_name=function_name,
+                    tool_call_id=tool_call.id,
                     content=result.json(),
                 )
             )
-            async for ans, hist in self.iterate(
-                history=history,
-                state=state,
-            ):
-                yield ans, hist
+
+        async for ans, hist in self._iterate(
+            history=history,
+            state=state,
+        ):
+            yield ans, hist
