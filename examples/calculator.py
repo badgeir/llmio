@@ -2,6 +2,7 @@ import asyncio
 import os
 from pprint import pprint
 
+import openai
 from llmio.assistant import Assistant
 
 
@@ -11,7 +12,7 @@ assistant = Assistant(
         Always use commands to calculate things.
         Never try to calculate things on your own.
         """,
-    key=os.environ["OPENAI_TOKEN"],
+    client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
     model="gpt-4o-mini",
 )
 

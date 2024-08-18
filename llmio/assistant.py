@@ -72,18 +72,18 @@ class Command:
 class Assistant:
     def __init__(
         self,
-        key: str,
         instruction: str,
-        model: str = "gpt-4",
+        client: openai.AsyncOpenAI,
+        model: str = "gpt-4o-mini",
     ):
         self.model = model
+        self.client = client
+
         self.instruction = textwrap.dedent(instruction).strip()
         self.commands: list[Command] = []
 
         self._prompt_inspectors: list[Callable] = []
         self._output_inspectors: list[Callable] = []
-
-        self.client = openai.AsyncOpenAI(api_key=key)
 
     def system_prompt(self) -> str:
         return self.instruction
