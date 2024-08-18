@@ -36,7 +36,7 @@ assistant = Assistant(
 )
 
 
-@assistant.command
+@assistant.command()
 async def add(num1: float, num2: float) -> float:
     """
     Add two numbers
@@ -45,7 +45,7 @@ async def add(num1: float, num2: float) -> float:
     return num1 + num2
 
 
-@assistant.command
+@assistant.command()
 async def multiply(num1: float, num2: float) -> float:
     """
     Multiply two numbers
