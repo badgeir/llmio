@@ -130,7 +130,9 @@ class Assistant:
                 kwargs[_STATE_ARG_NAME] = state
             inspector(prompt, **kwargs)
 
-    def _run_output_inspectors(self, content: Any, state: State | None) -> None:
+    def _run_output_inspectors(
+        self, content: ChatCompletionMessage, state: State | None
+    ) -> None:
         for inspector in self._output_inspectors:
             kwargs = {}
             if _STATE_ARG_NAME in signature(inspector).parameters:
