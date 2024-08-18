@@ -250,6 +250,7 @@ class Assistant:
             return
 
         awaitables = []
+        awaited_tool_calls = []
         for tool_call in generated_message.tool_calls:
             command = [
                 cmd for cmd in self.commands if cmd.name == tool_call.function.name
@@ -271,9 +272,10 @@ class Assistant:
                 continue
 
             awaitables.append(command.execute(params, state=state))
+            awaited_tool_calls.append(tool_call)
 
         tool_results = await asyncio.gather(*awaitables)
-        for tool_call, result in zip(generated_message.tool_calls, tool_results):
+        for tool_call, result in zip(awaited_tool_calls, tool_results):
             history.append(
                 self._create_tool_message(
                     tool_call_id=tool_call.id,
