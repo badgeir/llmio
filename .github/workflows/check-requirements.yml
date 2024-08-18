@@ -1,0 +1,17 @@
+name: Check requirements
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - run: pip install poetry
+    - run: poetry export > requirements-tmp.txt
+    - run: poetry export --only dev > requirements-dev-tmp.txt
+    - run: diff requirements.txt requirements-tmp.txt
+    - run: diff requirements-dev.txt requirements-dev-tmp.txt
