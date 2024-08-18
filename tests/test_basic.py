@@ -2,10 +2,9 @@ import json
 
 import openai
 
-from llmio import Assistant
+from llmio import Assistant, Message
 
 from tests.utils import mocked_async_openai_replies
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat.chat_completion_message import (
     ChatCompletionMessage,
     ChatCompletionMessageToolCall,
@@ -13,7 +12,7 @@ from openai.types.chat.chat_completion_message import (
 from openai.types.chat.chat_completion_message_tool_call import Function
 
 
-async def test_async_basics() -> None:
+async def test_basics() -> None:
     assistant = Assistant(
         instruction="You are a calculator",
         client=openai.AsyncOpenAI(api_key="abc"),
@@ -60,7 +59,7 @@ async def test_async_basics() -> None:
         ),
     ]
     answers = []
-    history: list[ChatCompletionMessageParam] = []
+    history: list[Message] = []
     with mocked_async_openai_replies(mocks):
         async for answer, history in assistant.speak(
             "What is (10 + 20) * 2?", history=history
@@ -85,4 +84,72 @@ async def test_async_basics() -> None:
             "content": json.dumps({"result": 60.0}),
         },
         assistant._parse_completion(mocks[2]),
+    ]
+
+
+async def test_parallel_tool_calls() -> None:
+    assistant = Assistant(
+        instruction="You are a calculator",
+        client=openai.AsyncOpenAI(api_key="abc"),
+    )
+
+    @assistant.command()
+    async def add(num1: float, num2: float) -> float:
+        return num1 + num2
+
+    @assistant.command()
+    async def multiply(num1: float, num2: float) -> float:
+        return num1 * num2
+
+    mocks = [
+        ChatCompletionMessage.construct(
+            content="Ok! I'll calculate the answers to (10 + 20) and (3 * 9)",
+            tool_calls=[
+                ChatCompletionMessageToolCall.construct(
+                    id="add_1",
+                    type="function",
+                    function=Function.construct(
+                        name="add", arguments=json.dumps({"num1": 10, "num2": 20})
+                    ),
+                ),
+                ChatCompletionMessageToolCall.construct(
+                    id="multiply_1",
+                    type="function",
+                    function=Function.construct(
+                        name="multiply", arguments=json.dumps({"num1": 3, "num2": 9})
+                    ),
+                ),
+            ],
+            role="assistant",
+        ),
+        ChatCompletionMessage.construct(
+            role="assistant",
+            content="The answer is 30 and 27",
+        ),
+    ]
+    answers = []
+    history: list[Message] = []
+    with mocked_async_openai_replies(mocks):
+        async for answer, history in assistant.speak(
+            "What is (10 + 20) and (3 * 9)?", history=history
+        ):
+            answers.append(answer)
+    assert answers == [mocks[0].content, mocks[1].content]
+    assert history == [
+        {
+            "role": "user",
+            "content": "What is (10 + 20) and (3 * 9)?",
+        },
+        assistant._parse_completion(mocks[0]),
+        {
+            "role": "tool",
+            "tool_call_id": "add_1",
+            "content": json.dumps({"result": 30.0}),
+        },
+        {
+            "role": "tool",
+            "tool_call_id": "multiply_1",
+            "content": json.dumps({"result": 27.0}),
+        },
+        assistant._parse_completion(mocks[1]),
     ]

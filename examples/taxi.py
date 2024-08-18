@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 import openai
-from llmio.assistant import Assistant
+from llmio.assistant import Assistant, Message
 
 
 assistant = Assistant(
@@ -44,8 +44,8 @@ def book_taxi(
     return Result(success=True, booking_id="abc123")
 
 
-async def main():
-    history = []
+async def main() -> None:
+    history: list[Message] = []
     while True:
         async for answer, history in assistant.speak(input(">>"), history=history):
             print(answer)
