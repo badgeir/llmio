@@ -6,10 +6,19 @@ jobs:
   build:
     name: Publish Python distribution to PyPI.
     runs-on: ubuntu-latest
+
+    environment:
+      name: release
+      url: https://pypi.org/project/llmio/
+
+    permissions:
+      id-token: write
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Ensures tags are also fetched
+
       - name: Set up Python 3.10.
         uses: actions/setup-python@v4
         with:
@@ -23,3 +32,4 @@ jobs:
         with:
           name: python-package-distributions
           path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
