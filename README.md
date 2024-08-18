@@ -158,6 +158,11 @@ async def create_task(name: str = "My task", description: str | None = None) -> 
     return "Created task"
 ```
 
+### Supported parameter types
+
+Types supported by pydantic are supported.
+For documentation on supported types, see [pydantic's documentation](https://docs.pydantic.dev/latest/concepts/types).
+
 ### Hooks
 
 Add hooks to receive callbacks with prompts and outputs.
