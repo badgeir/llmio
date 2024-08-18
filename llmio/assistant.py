@@ -132,31 +132,29 @@ class Assistant:
     def _parse_completion(
         completion: ChatCompletionMessage,
     ) -> ChatCompletionAssistantMessageParam:
-        return ChatCompletionAssistantMessageParam(
+        result = ChatCompletionAssistantMessageParam(
             {
                 "role": completion.role,
                 "content": completion.content,
-                "tool_calls": (
-                    [
-                        ChatCompletionMessageToolCallParam(
-                            {
-                                "id": tool_call.id,
-                                "type": tool_call.type,
-                                "function": Function(
-                                    {
-                                        "name": tool_call.function.name,
-                                        "arguments": tool_call.function.arguments,
-                                    }
-                                ),
-                            }
-                        )
-                        for tool_call in completion.tool_calls
-                    ]
-                    if completion.tool_calls
-                    else []
-                ),
             }
         )
+        if completion.tool_calls:
+            result["tool_calls"] = [
+                ChatCompletionMessageToolCallParam(
+                    {
+                        "id": tool_call.id,
+                        "type": tool_call.type,
+                        "function": Function(
+                            {
+                                "name": tool_call.function.name,
+                                "arguments": tool_call.function.arguments,
+                            }
+                        ),
+                    }
+                )
+                for tool_call in completion.tool_calls
+            ]
+        return result
 
     def _get_tool_kwargs(self) -> dict[str, Any]:
         kwargs: dict[str, Any] = {}
