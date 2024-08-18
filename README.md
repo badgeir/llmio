@@ -19,6 +19,7 @@ pip install llmio
 ``` python
 
 import asyncio
+import os
 
 import openai
 
