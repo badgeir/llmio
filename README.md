@@ -38,18 +38,12 @@ assistant = Assistant(
 
 @assistant.command()
 async def add(num1: float, num2: float) -> float:
-    """
-    Add two numbers
-    """
     print(f"Adding {num1} + {num2}")
     return num1 + num2
 
 
 @assistant.command()
 async def multiply(num1: float, num2: float) -> float:
-    """
-    Multiply two numbers
-    """
     print(f"Multiplying {num1} * {num2}")
     return num1 * num2
 
