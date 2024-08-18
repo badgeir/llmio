@@ -6,6 +6,8 @@ authors = ["Peter Leupi"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/badgeir/llmio"
+repository = "https://github.com/badgeir/llmio"
+documentation = "https://github.com/badgeir/llmio"
 
 [tool.poetry.dependencies]
 python = "^3.10"
