@@ -18,11 +18,11 @@ async def test_basics() -> None:
         client=openai.AsyncOpenAI(api_key="abc"),
     )
 
-    @assistant.command()
+    @assistant.tool()
     async def add(num1: float, num2: float) -> float:
         return num1 + num2
 
-    @assistant.command()
+    @assistant.tool()
     async def multiply(num1: float, num2: float) -> float:
         return num1 * num2
 
@@ -93,11 +93,11 @@ async def test_parallel_tool_calls() -> None:
         client=openai.AsyncOpenAI(api_key="abc"),
     )
 
-    @assistant.command()
+    @assistant.tool()
     async def add(num1: float, num2: float) -> float:
         return num1 + num2
 
-    @assistant.command()
+    @assistant.tool()
     async def multiply(num1: float, num2: float) -> float:
         return num1 * num2
 

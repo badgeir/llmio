@@ -28,7 +28,7 @@ _STATE_ARG_NAME = "_state"
 
 
 @dataclass
-class _Command:
+class _Tool:
     function: Callable
     strict: bool = False
 
@@ -88,7 +88,7 @@ class Assistant:
 
         self._instruction = textwrap.dedent(instruction).strip()
 
-        self._commands: list[_Command] = []
+        self._tools: list[_Tool] = []
         self._prompt_inspectors: list[Callable] = []
         self._output_inspectors: list[Callable] = []
 
@@ -102,24 +102,24 @@ class Assistant:
         ]
 
     def summary(self) -> str:
-        lines = ["Commands:"]
-        for command in self._commands:
-            lines.append(f"  - {command.name}")
+        lines = ["Tools:"]
+        for tool in self._tools:
+            lines.append(f"  - {tool.name}")
             lines.append("    Schema:")
             lines.append(
-                textwrap.indent(pprint.pformat(command.tool_definition), "      ")
+                textwrap.indent(pprint.pformat(tool.tool_definition), "      ")
             )
             lines.append("")
         return "\n".join(lines)
 
-    def command(self, strict: bool = False) -> Callable:
+    def tool(self, strict: bool = False) -> Callable:
         def decorator(function: Callable) -> Callable:
             if "return" not in function.__annotations__:
                 raise ValueError(
-                    f"The return type of the command {function.__name__} must be annotated with ->"
+                    f"The return type of the tool {function.__name__} must be annotated with ->"
                 )
-            self._commands.append(
-                _Command(function=function, strict=strict),
+            self._tools.append(
+                _Tool(function=function, strict=strict),
             )
             return function
 
@@ -182,8 +182,8 @@ class Assistant:
     def _get_tool_kwargs(self) -> dict[str, Any]:
         kwargs: dict[str, Any] = {}
         if tool_definitions := [
-            {"type": "function", "function": command.tool_definition}
-            for command in self._commands
+            {"type": "function", "function": tool.tool_definition}
+            for tool in self._tools
         ]:
             kwargs["tools"] = tool_definitions
         return kwargs
@@ -264,15 +264,15 @@ class Assistant:
         awaitables = []
         awaited_tool_calls = []
         for tool_call in generated_message.tool_calls:
-            command = [
-                cmd for cmd in self._commands if cmd.name == tool_call.function.name
-            ][0]
+            tool = [cmd for cmd in self._tools if cmd.name == tool_call.function.name][
+                0
+            ]
 
             try:
-                params = command.params.parse_raw(tool_call.function.arguments)
+                params = tool.params.parse_raw(tool_call.function.arguments)
             except pydantic.ValidationError as e:
                 error_message = (
-                    f"The argument validation failed for the function call to {command.name}: "
+                    f"The argument validation failed for the function call to {tool.name}: "
                     + str(e)
                 )
                 history.append(
@@ -283,7 +283,7 @@ class Assistant:
                 )
                 continue
 
-            awaitables.append(command.execute(params, state=state))
+            awaitables.append(tool.execute(params, state=state))
             awaited_tool_calls.append(tool_call)
 
         tool_results = await asyncio.gather(*awaitables)

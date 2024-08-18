@@ -21,7 +21,7 @@ class User:
     name: str
 
 
-@assistant.command()
+@assistant.tool()
 async def set_reminder(description: str, datetime_iso: datetime, _state: User) -> str:
     print(
         f"set_reminder(): Creating reminder for user {_state.id}: {description} at {datetime_iso}"
