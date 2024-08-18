@@ -5,7 +5,7 @@ on:
     types: [released]
 
 jobs:
-  build-and-publish:
+  build:
     name: Publish Python distribution to PyPI.
     runs-on: ubuntu-latest
 
