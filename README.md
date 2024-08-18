@@ -80,27 +80,21 @@ async def add(num1: float, num2: float) -> float:
     return num1 + num2
 
 
-print("Command name:", assistant.commands[-1].name)
-print("Schema:")
-pprint(assistant.commands[-1].tool_definition)
-print(
-    "Parsed arguments:",
-    assistant.commands[-1].params.parse_raw('{"num1": 1, "num2": 2}'),
-)
+print(assistant.summary())
 ```
 
 Output:
 ``` plaintext
-Command name: add
-Schema:
-{'description': 'The docstring is used as the description of the command.',
- 'name': 'add',
- 'parameters': {'properties': {'num1': {'type': 'number'},
-                               'num2': {'type': 'number'}},
-                'required': ['num1', 'num2'],
-                'type': 'object'},
- 'strict': False}
-Parsed arguments: num1=1.0 num2=2.0
+Commands:
+  - add
+    Schema:
+      {'description': 'The docstring is used as the description of the command.',
+       'name': 'add',
+       'parameters': {'properties': {'num1': {'type': 'number'},
+                                     'num2': {'type': 'number'}},
+                      'required': ['num1', 'num2'],
+                      'type': 'object'},
+       'strict': False}
 ```
 
 #### Parameter descriptions
@@ -119,33 +113,29 @@ async def book_flight(
     """Books a flight"""
     return f"Booked flight from {origin} to {destination} on {date}"
 
-print("Schema:")
-pprint(assistant.commands[-1].tool_definition)
-print(
-    "Parsed arguments:",
-    assistant.commands[-1].params.parse_raw('{"destination": "Oslo", "origin": "Madrid", "date": "2024-12-24"}'),
-)
+print(assistant.summary())
 ```
 
 Output:
 ``` plaintext
-Schema:
-{'description': 'Books a flight',
- 'name': 'book_flight',
- 'parameters': {'properties': {'date': {'description': 'The date of the '
-                                                       'flight. ISO-format is '
-                                                       'expected.',
-                                        'format': 'date',
-                                        'type': 'string'},
-                               'destination': {'description': 'The destination '
-                                                              'airport',
-                                               'type': 'string'},
-                               'origin': {'description': 'The origin airport',
-                                          'type': 'string'}},
-                'required': ['destination', 'origin', 'date'],
-                'type': 'object'},
- 'strict': False}
-Parsed arguments: destination='Oslo' origin='Madrid' date=datetime.date(2024, 12, 24)
+Commands:
+  - book_flight
+    Schema:
+      {'description': 'Books a flight',
+       'name': 'book_flight',
+       'parameters': {'properties': {'date': {'description': 'The date of the '
+                                                             'flight. ISO-format is '
+                                                             'expected.',
+                                              'format': 'date-time',
+                                              'type': 'string'},
+                                     'destination': {'description': 'The destination '
+                                                                    'airport',
+                                                     'type': 'string'},
+                                     'origin': {'description': 'The origin airport',
+                                                'type': 'string'}},
+                      'required': ['destination', 'origin', 'date'],
+                      'type': 'object'},
+       'strict': False}
 ```
 
 ### Optional parameters

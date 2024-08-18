@@ -1,4 +1,5 @@
 import asyncio
+import pprint
 from typing import Callable, Type, Any, AsyncIterator, TypeVar
 from dataclasses import dataclass
 import textwrap
@@ -82,17 +83,17 @@ class Assistant:
         client: openai.AsyncOpenAI,
         model: str = "gpt-4o-mini",
     ):
-        self.model = model
-        self.client = client
+        self._model = model
+        self._client = client
 
-        self.instruction = textwrap.dedent(instruction).strip()
+        self._instruction = textwrap.dedent(instruction).strip()
 
-        self.commands: list[_Command] = []
+        self._commands: list[_Command] = []
         self._prompt_inspectors: list[Callable] = []
         self._output_inspectors: list[Callable] = []
 
     def _get_system_prompt(self) -> SystemMessage:
-        return self._create_system_message(self.instruction)
+        return self._create_system_message(self._instruction)
 
     def _create_prompt(self, message_history: list[Message]) -> list[Message]:
         return [
@@ -100,13 +101,24 @@ class Assistant:
             *message_history,
         ]
 
+    def summary(self) -> str:
+        lines = ["Commands:"]
+        for command in self._commands:
+            lines.append(f"  - {command.name}")
+            lines.append("    Schema:")
+            lines.append(
+                textwrap.indent(pprint.pformat(command.tool_definition), "      ")
+            )
+            lines.append("")
+        return "\n".join(lines)
+
     def command(self, strict: bool = False) -> Callable:
         def decorator(function: Callable) -> Callable:
             if "return" not in function.__annotations__:
                 raise ValueError(
                     f"The return type of the command {function.__name__} must be annotated with ->"
                 )
-            self.commands.append(
+            self._commands.append(
                 _Command(function=function, strict=strict),
             )
             return function
@@ -171,7 +183,7 @@ class Assistant:
         kwargs: dict[str, Any] = {}
         if tool_definitions := [
             {"type": "function", "function": command.tool_definition}
-            for command in self.commands
+            for command in self._commands
         ]:
             kwargs["tools"] = tool_definitions
         return kwargs
@@ -180,8 +192,8 @@ class Assistant:
         self,
         messages: list[Message],
     ) -> ChatCompletion:
-        return await self.client.chat.completions.create(
-            model=self.model,
+        return await self._client.chat.completions.create(
+            model=self._model,
             messages=messages,
             **self._get_tool_kwargs(),
         )
@@ -253,7 +265,7 @@ class Assistant:
         awaited_tool_calls = []
         for tool_call in generated_message.tool_calls:
             command = [
-                cmd for cmd in self.commands if cmd.name == tool_call.function.name
+                cmd for cmd in self._commands if cmd.name == tool_call.function.name
             ][0]
 
             try:
