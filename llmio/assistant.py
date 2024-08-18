@@ -1,4 +1,5 @@
-from typing import Callable, Type, Any, AsyncIterator
+import asyncio
+from typing import Callable, Type, Any, AsyncIterator, TypeVar
 from dataclasses import dataclass
 import textwrap
 from inspect import signature, iscoroutinefunction
@@ -8,16 +9,19 @@ import openai
 from openai.types.chat import (
     ChatCompletion,
     ChatCompletionMessage,
-    ChatCompletionMessageParam,
-    ChatCompletionToolMessageParam,
-    ChatCompletionAssistantMessageParam,
-    ChatCompletionUserMessageParam,
-    ChatCompletionSystemMessageParam,
-    ChatCompletionMessageToolCallParam,
+    ChatCompletionMessageParam as Message,
+    ChatCompletionToolMessageParam as ToolMessage,
+    ChatCompletionAssistantMessageParam as AssistantMessage,
+    ChatCompletionUserMessageParam as UserMessage,
+    ChatCompletionSystemMessageParam as SystemMessage,
+    ChatCompletionMessageToolCallParam as ToolCall,
 )
 from openai.types.chat.chat_completion_message_tool_call_param import Function
 
 from llmio import function_parser
+
+
+State = TypeVar("State")
 
 
 @dataclass
@@ -44,10 +48,10 @@ class _Command:
             return ""
         return textwrap.dedent(self.function.__doc__).strip()
 
-    async def execute(self, params: pydantic.BaseModel, state=None):
+    async def execute(self, params: pydantic.BaseModel, state: State | None):
         kwargs = {}
-        if "state" in signature(self.function).parameters:
-            kwargs["state"] = state
+        if "_state" in signature(self.function).parameters:
+            kwargs["_state"] = state
 
         if iscoroutinefunction(self.function):
             result = await self.function(**params.dict(), **kwargs)
@@ -83,12 +87,10 @@ class Assistant:
         self._prompt_inspectors: list[Callable] = []
         self._output_inspectors: list[Callable] = []
 
-    def _get_system_prompt(self) -> ChatCompletionSystemMessageParam:
+    def _get_system_prompt(self) -> SystemMessage:
         return self._create_system_message(self.instruction)
 
-    def _create_prompt(
-        self, message_history: list[ChatCompletionMessageParam]
-    ) -> list[ChatCompletionMessageParam]:
+    def _create_prompt(self, message_history: list[Message]) -> list[Message]:
         return [
             self._get_system_prompt(),
             *message_history,
@@ -113,26 +115,26 @@ class Assistant:
         return function
 
     def _run_prompt_inspectors(
-        self, prompt: list[ChatCompletionMessageParam], state: Any
+        self, prompt: list[Message], state: State | None
     ) -> None:
         for inspector in self._prompt_inspectors:
             kwargs = {}
-            if "state" in signature(inspector).parameters:
-                kwargs["state"] = state
+            if "_state" in signature(inspector).parameters:
+                kwargs["_state"] = state
             inspector(prompt, **kwargs)
 
-    def _run_output_inspectors(self, content: Any, state: Any) -> None:
+    def _run_output_inspectors(self, content: Any, state: State | None) -> None:
         for inspector in self._output_inspectors:
             kwargs = {}
-            if "state" in signature(inspector).parameters:
-                kwargs["state"] = state
+            if "_state" in signature(inspector).parameters:
+                kwargs["_state"] = state
             inspector(content, **kwargs)
 
     @staticmethod
     def _parse_completion(
         completion: ChatCompletionMessage,
-    ) -> ChatCompletionAssistantMessageParam:
-        result = ChatCompletionAssistantMessageParam(
+    ) -> AssistantMessage:
+        result = AssistantMessage(
             {
                 "role": completion.role,
                 "content": completion.content,
@@ -140,7 +142,7 @@ class Assistant:
         )
         if completion.tool_calls:
             result["tool_calls"] = [
-                ChatCompletionMessageToolCallParam(
+                ToolCall(
                     {
                         "id": tool_call.id,
                         "type": tool_call.type,
@@ -167,7 +169,7 @@ class Assistant:
 
     async def _get_completion(
         self,
-        messages: list[ChatCompletionMessageParam],
+        messages: list[Message],
     ) -> ChatCompletion:
         return await self.client.chat.completions.create(
             model=self.model,
@@ -175,18 +177,16 @@ class Assistant:
             **self._get_tool_kwargs(),
         )
 
-    def _create_user_message(self, message: str) -> ChatCompletionUserMessageParam:
-        return ChatCompletionUserMessageParam(
+    def _create_user_message(self, message: str) -> UserMessage:
+        return UserMessage(
             {
                 "role": "user",
                 "content": message,
             }
         )
 
-    def _create_function_message(
-        self, tool_call_id: str, content: str
-    ) -> ChatCompletionToolMessageParam:
-        return ChatCompletionToolMessageParam(
+    def _create_tool_message(self, tool_call_id: str, content: str) -> ToolMessage:
+        return ToolMessage(
             {
                 "role": "tool",
                 "content": content,
@@ -194,8 +194,8 @@ class Assistant:
             }
         )
 
-    def _create_system_message(self, message: str) -> ChatCompletionSystemMessageParam:
-        return ChatCompletionSystemMessageParam(
+    def _create_system_message(self, message: str) -> SystemMessage:
+        return SystemMessage(
             {
                 "role": "system",
                 "content": message,
@@ -205,9 +205,9 @@ class Assistant:
     async def speak(
         self,
         message: str,
-        history: list[ChatCompletionMessageParam] | None = None,
-        state: Any = None,
-    ) -> AsyncIterator[tuple[str, list[ChatCompletionMessageParam]]]:
+        history: list[Message] | None = None,
+        state: State | None = None,
+    ) -> AsyncIterator[tuple[str, list[Message]]]:
         if not history:
             history = []
         history.append(self._create_user_message(message))
@@ -220,9 +220,9 @@ class Assistant:
 
     async def _iterate(
         self,
-        history: list[ChatCompletionMessageParam],
-        state: Any = None,
-    ) -> AsyncIterator[tuple[str, list[ChatCompletionMessageParam]]]:
+        history: list[Message],
+        state: State | None,
+    ) -> AsyncIterator[tuple[str, list[Message]]]:
         prompt = self._create_prompt(history)
         self._run_prompt_inspectors(prompt, state)
 
@@ -240,6 +240,7 @@ class Assistant:
         if not generated_message.tool_calls:
             return
 
+        awaitables = []
         for tool_call in generated_message.tool_calls:
             command = [
                 cmd for cmd in self.commands if cmd.name == tool_call.function.name
@@ -253,17 +254,19 @@ class Assistant:
                     + str(e)
                 )
                 history.append(
-                    self._create_function_message(
+                    self._create_tool_message(
                         tool_call_id=tool_call.id,
                         content=error_message,
                     )
                 )
                 continue
 
-            result = await command.execute(params, state=state)
+            awaitables.append(command.execute(params, state=state))
 
+        tool_results = await asyncio.gather(*awaitables)
+        for tool_call, result in zip(generated_message.tool_calls, tool_results):
             history.append(
-                self._create_function_message(
+                self._create_tool_message(
                     tool_call_id=tool_call.id,
                     content=result.json(),
                 )
