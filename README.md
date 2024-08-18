@@ -194,8 +194,13 @@ async def create_task(task_name: str, _state: User) -> str:
 
 async def main() -> None:
     history = []
-    async for reply, history in assistant.speak("Create a task named 'Buy milk'", history, _state=User(id="1", name="Alice")):
+    async for reply, history in assistant.speak(
+        "Create a task named 'Buy milk'",
+        history,
+        _state=User(id="1", name="Alice"),
+    ):
         print(reply)
+
 ```
 
 
