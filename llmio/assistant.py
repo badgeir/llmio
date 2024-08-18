@@ -206,14 +206,14 @@ class Assistant:
         self,
         message: str,
         history: list[Message] | None = None,
-        state: State | None = None,
+        _state: State | None = None,
     ) -> AsyncIterator[tuple[str, list[Message]]]:
         if not history:
             history = []
         history.append(self._create_user_message(message))
         async for ans, hist in self._iterate(
             history=history,
-            state=state,
+            state=_state,
         ):
             yield ans, hist
         return

@@ -63,7 +63,7 @@ async def test_state() -> None:
     history: list[Message] = []
     with mocked_async_openai_replies(mocks):
         async for answer, history in assistant.speak(
-            "Set a reminder for me", history=history, state=user
+            "Set a reminder for me", history=history, _state=user
         ):
             answers.append(answer)
     assert answers == [mocks[0].content, mocks[1].content]

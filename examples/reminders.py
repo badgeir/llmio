@@ -35,7 +35,7 @@ async def main() -> None:
 
     async for message, history in assistant.speak(
         "Remind me that I need to pick up milk at the store in two hours",
-        state=user,
+        _state=user,
         history=history,
     ):
         print(message)
