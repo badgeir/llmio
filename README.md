@@ -23,7 +23,7 @@ import os
 
 import openai
 
-from llmio import Assistant
+from llmio import Assistant, Message
 
 
 assistant = Assistant(
@@ -55,7 +55,7 @@ async def multiply(num1: float, num2: float) -> float:
 
 
 async def main():
-    history = []
+    history: list[Message] = []
 
     while True:
         async for reply, history in assistant.speak(input(">>"), history):
