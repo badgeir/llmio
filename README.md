@@ -1,12 +1,12 @@
 # llmio
-## Easily connect large language models into your application
+## LLM I/O - Easily connect large language models into your application
 
 ![pylint](https://github.com/badgeir/llmio/actions/workflows/pylint.yml/badge.svg)
 ![mypy](https://github.com/badgeir/llmio/actions/workflows/mypy.yml/badge.svg)
 ![ruff](https://github.com/badgeir/llmio/actions/workflows/ruff.yml/badge.svg)
 ![tests](https://github.com/badgeir/llmio/actions/workflows/test.yml/badge.svg)
 
-llmio uses type annotations to enable tool execution with OpenAI-compatible APIs.
+llmio is a lightweight library that uses type annotations to enable tool execution with OpenAI-compatible APIs.
 
 # Setup
 
