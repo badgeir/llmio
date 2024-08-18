@@ -56,8 +56,9 @@ async def multiply(num1: float, num2: float) -> float:
 async def main():
     history = []
 
-    async for reply, history in assistant.speak(input(">>"), history):
-        print(reply)
+    while True:
+        async for reply, history in assistant.speak(input(">>"), history):
+            print(reply)
 
 
 if __name__ == "__main__":
