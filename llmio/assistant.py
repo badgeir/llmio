@@ -100,7 +100,10 @@ class Assistant:
 
     def command(self, strict: bool = False) -> Callable:
         def decorator(function: Callable) -> Callable:
-            assert "return" in function.__annotations__
+            if "return" not in function.__annotations__:
+                raise ValueError(
+                    f"The return type of the command {function.__name__} must be annotated with ->"
+                )
             self.commands.append(
                 _Command(function=function, strict=strict),
             )
