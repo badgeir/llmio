@@ -1,41 +1,25 @@
 name: Publish Python distribution to PyPI
 
-on:
-  release:
-    types: [released]
+on: push
 
 jobs:
   build:
     name: Publish Python distribution to PyPI.
     runs-on: ubuntu-latest
-
-    # environment:
-    #   name: pypi
-    #   url: https://pypi.org/p/llmio
-
-    # permissions:
-    #   id-token: write
-
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Ensures tags are also fetched
-
       - name: Set up Python 3.10.
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
-
       - name: Install release dependencies.
         run: python3 -m pip install poetry
-
       - name: Build
         run: poetry build
-
-    - name: Store the distribution packages
-      uses: actions/upload-artifact@v3
-      with:
-        name: python-package-distributions
-        path: dist/
-
-      # - uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-package-distributions
+          path: dist/
