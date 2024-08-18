@@ -17,7 +17,6 @@ pip install llmio
 # Examples
 
 ``` python
-
 import asyncio
 import os
 
@@ -38,13 +37,13 @@ assistant = Assistant(
 
 @assistant.tool()
 async def add(num1: float, num2: float) -> float:
-    print(f"Adding {num1} + {num2}")
+    print(f"** Adding {num1} + {num2}")
     return num1 + num2
 
 
 @assistant.tool()
 async def multiply(num1: float, num2: float) -> float:
-    print(f"Multiplying {num1} * {num2}")
+    print(f"** Multiplying {num1} * {num2}")
     return num1 * num2
 
 
@@ -53,7 +52,7 @@ async def main():
 
     while True:
         async for reply, history in assistant.speak(input(">>"), history):
-            print(reply)
+            print("Output:", reply)
 
 
 if __name__ == "__main__":
