@@ -143,7 +143,7 @@ class Assistant:
             inspector(prompt, **kwargs)
 
     def _run_output_inspectors(
-        self, content: ChatCompletionMessage, state: State | None
+        self, content: AssistantMessage, state: State | None
     ) -> None:
         for inspector in self._output_inspectors:
             kwargs = {}
@@ -251,9 +251,10 @@ class Assistant:
             messages=prompt,
         )
         generated_message = result.choices[0].message
-        self._run_output_inspectors(generated_message, state)
+        parsed_response = self._parse_completion(generated_message)
+        self._run_output_inspectors(parsed_response, state)
 
-        history.append(self._parse_completion(generated_message))
+        history.append(parsed_response)
 
         if generated_message.content:
             yield generated_message.content, history

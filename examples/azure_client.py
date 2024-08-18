@@ -1,9 +1,7 @@
 import asyncio
-import os
-from pprint import pprint
 
 import openai
-from llmio.assistant import Assistant, Message
+from llmio.assistant import Assistant
 
 
 assistant = Assistant(
@@ -12,8 +10,12 @@ assistant = Assistant(
         Always use tools to calculate things.
         Never try to calculate things on your own.
         """,
-    client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
-    model="gpt-4o-mini",
+    client=openai.AsyncAzureOpenAI(
+        api_key="<your-api-key",
+        azure_endpoint="<your-azure-endpoint>",
+        api_version="<your-api-version>",
+    ),
+    model="<your-deployment>",
 )
 
 
@@ -25,18 +27,6 @@ def add(num1: float, num2: float) -> float:
 @assistant.tool()
 async def multiply(num1: float, num2: float) -> float:
     return num1 * num2
-
-
-@assistant.inspect_prompt
-def print_prompt(prompt: list[Message]):
-    print("Prompt:")
-    pprint(prompt)
-
-
-@assistant.inspect_output
-def print_model_output(output: Message):
-    print("Model output:")
-    pprint(output)
 
 
 async def main():
