@@ -1,5 +1,7 @@
 import json
 
+import openai
+
 from llmio import Assistant
 
 from tests.utils import mocked_async_openai_replies
@@ -10,7 +12,10 @@ from openai.types.chat.chat_completion_message import (
 
 
 async def test_async_basics():
-    assistant = Assistant(key="abc", instruction="You are a calculator")
+    assistant = Assistant(
+        instruction="You are a calculator",
+        client=openai.AsyncOpenAI(api_key="abc"),
+    )
 
     @assistant.command
     async def add(num1: float, num2: float) -> float:

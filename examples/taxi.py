@@ -4,12 +4,14 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+import openai
 from llmio.assistant import Assistant
 
 
 assistant = Assistant(
-    instruction="You are Oslo Taxis taxi booking assistant.",
-    key=os.environ["OPENAI_TOKEN"],
+    instruction="You are a taxi booking assistant.",
+    client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
+    model="gpt-4o-mini",
 )
 
 
