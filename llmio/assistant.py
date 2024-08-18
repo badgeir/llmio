@@ -63,6 +63,8 @@ class _Command:
     @property
     def tool_definition(self) -> dict:
         schema = self.params.schema()
+        if self.strict:
+            schema["additionalProperties"] = False
         return {
             "name": self.name,
             "description": self.description,
