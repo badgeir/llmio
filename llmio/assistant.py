@@ -58,6 +58,9 @@ class _Tool:
 
         return str(result)
 
+    def parse_args(self, args: str) -> pydantic.BaseModel:
+        return self.params.parse_raw(args)
+
     @property
     def tool_definition(self) -> dict:
         schema = self.params.schema()
@@ -298,7 +301,7 @@ class Assistant:
             ]
 
             try:
-                params = tool.params.parse_raw(tool_call.function.arguments)
+                params = tool.parse_args(tool_call.function.arguments)
             except pydantic.ValidationError as e:
                 error_message = (
                     f"The argument validation failed for the function call to {tool.name}: "
