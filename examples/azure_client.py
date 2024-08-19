@@ -35,8 +35,8 @@ async def print_message(message: str):
 
 
 async def main():
-    history = await assistant.run("Hi! how much is 1 + 1?")
-    history = await assistant.run("and how much is that times two?", history=history)
+    history = await assistant.speak("Hi! how much is 1 + 1?")
+    history = await assistant.speak("and how much is that times two?", history=history)
 
 
 if __name__ == "__main__":

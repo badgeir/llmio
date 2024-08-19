@@ -2,7 +2,7 @@ import json
 
 import openai
 
-from llmio import Assistant, Message
+from llmio import Assistant
 
 from tests.utils import mocked_async_openai_replies
 from openai.types.chat.chat_completion_message import (
@@ -58,13 +58,8 @@ async def test_basics() -> None:
             content="The answer is 60",
         ),
     ]
-    answers = []
-    history: list[Message] = []
     with mocked_async_openai_replies(mocks):
-        async for answer, history in assistant.run(
-            "What is (10 + 20) * 2?", history=history
-        ):
-            answers.append(answer)
+        answers, history = await assistant.speak("What is (10 + 20) * 2?")
     assert answers == [mocks[0].content, mocks[2].content]
     assert history == [
         {
@@ -127,13 +122,8 @@ async def test_parallel_tool_calls() -> None:
             content="The answer is 30 and 27",
         ),
     ]
-    answers = []
-    history: list[Message] = []
     with mocked_async_openai_replies(mocks):
-        async for answer, history in assistant.run(
-            "What is (10 + 20) and (3 * 9)?", history=history
-        ):
-            answers.append(answer)
+        answers, history = await assistant.speak("What is (10 + 20) and (3 * 9)?")
     assert answers == [mocks[0].content, mocks[1].content]
     assert history == [
         {
