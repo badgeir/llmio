@@ -68,8 +68,6 @@ async def print_message(message: str):
 
 
 async def main():
-    # pylint: disable=unused-variable
-
     # Run the assistant with a message.
     # An empty history might also be passed in.
     # The assistant will return the messages it generated and the updated history.
