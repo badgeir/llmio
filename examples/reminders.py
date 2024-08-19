@@ -20,6 +20,10 @@ assistant = Assistant(
 )
 
 
+# Define a tool that sets a reminder for a user.
+# The special argument _state will be passed in when detected in the function signature.
+# The _state variable can be used to keep track of context, such as the current user.
+# Note that the _state variable is invisible to the language model.
 @assistant.tool()
 async def set_reminder(description: str, datetime_iso: datetime, _state: User) -> str:
     print(
@@ -28,6 +32,8 @@ async def set_reminder(description: str, datetime_iso: datetime, _state: User) -
     return "Successfully created reminder"
 
 
+# Define a message handler that sends a message to the user.
+# The special argument _state will also be passed in to hooks such as @on_message.
 @assistant.on_message
 async def send_message(message: Message, _state: User) -> None:
     print(f"** Sending message to {_state.name}: '{message}'")
@@ -35,9 +41,9 @@ async def send_message(message: Message, _state: User) -> None:
 
 async def main() -> None:
     user = User(name="Alice")
-    _ = await assistant.run(
+    _ = await assistant.speak(
         "Remind me that I need to pick up milk at the store in two hours",
-        _state=user,
+        _state=user,  # Pass in the user state to the assistant.
     )
 
 

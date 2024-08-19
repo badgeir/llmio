@@ -47,8 +47,9 @@ def book_taxi(
 async def main() -> None:
     history: list[Message] = []
     while True:
-        async for answer, history in assistant.speak(input(">>"), history=history):
-            print(answer)
+        messages, history = await assistant.speak(input(">>"), history=history)
+        for message in messages:
+            print(message)
 
 
 if __name__ == "__main__":

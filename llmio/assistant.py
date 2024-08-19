@@ -247,17 +247,18 @@ class Assistant:
             }
         )
 
-    async def run(
+    async def speak(
         self,
         message: str,
         history: list[Message] | None = None,
         _state: State | None = None,
-    ) -> list[Message]:
-        async for _, history in self.speak(message, history=history, _state=_state):
-            pass
-        return history
+    ) -> tuple[list[str], list[Message]]:
+        new_messages: list[str] = []
+        async for message, history in self.run(message, history=history, _state=_state):
+            new_messages.append(message)
+        return new_messages, history
 
-    async def speak(
+    async def run(
         self,
         message: str,
         history: list[Message] | None = None,

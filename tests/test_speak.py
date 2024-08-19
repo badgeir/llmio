@@ -10,7 +10,7 @@ from llmio import Assistant, UserMessage, AssistantMessage, ToolCall, ToolMessag
 from tests import utils
 
 
-async def test_gather_basic() -> None:
+async def test_gather_run() -> None:
     assistant = Assistant(
         instruction="instruction",
         client=openai.AsyncOpenAI(api_key="abc"),
@@ -42,7 +42,7 @@ async def test_gather_basic() -> None:
     assert sorted(on_message_called_with) == sorted([f"A{i}" for i in range(100)])
 
 
-async def test_gather_tools() -> None:
+async def test_gather_run_tools() -> None:
     assistant = Assistant(
         instruction="instruction",
         client=openai.AsyncOpenAI(api_key="abc"),

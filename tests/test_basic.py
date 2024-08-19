@@ -61,7 +61,7 @@ async def test_basics() -> None:
     answers = []
     history: list[Message] = []
     with mocked_async_openai_replies(mocks):
-        async for answer, history in assistant.speak(
+        async for answer, history in assistant.run(
             "What is (10 + 20) * 2?", history=history
         ):
             answers.append(answer)
@@ -130,7 +130,7 @@ async def test_parallel_tool_calls() -> None:
     answers = []
     history: list[Message] = []
     with mocked_async_openai_replies(mocks):
-        async for answer, history in assistant.speak(
+        async for answer, history in assistant.run(
             "What is (10 + 20) and (3 * 9)?", history=history
         ):
             answers.append(answer)
