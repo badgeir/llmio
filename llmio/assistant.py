@@ -156,7 +156,6 @@ class Assistant:
             kwargs = {}
             if _CONTEXT_ARG_NAME in signature(inspector).parameters:
                 kwargs[_CONTEXT_ARG_NAME] = context
-            inspector(content, **kwargs)
             if iscoroutinefunction(inspector):
                 await inspector(content, **kwargs)
             else:
