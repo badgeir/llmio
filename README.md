@@ -8,7 +8,7 @@
 [![pypi](https://img.shields.io/pypi/v/PgQueuer.svg)](https://pypi.python.org/pypi/PgQueuer)
 [![versions](https://img.shields.io/pypi/pyversions/PgQueuer.svg)](https://github.com/janbjorge/PgQueuer)
 
-![llmio](files/banner-image.png)
+![llmio](images/banner-image.png)
 
 llmio is a lightweight library that uses type annotations to enable tool execution with OpenAI-compatible APIs such as OpenAI, Azure OpenAI, AWS Bedrock Access Gateway and Huggingface TGI.
 
