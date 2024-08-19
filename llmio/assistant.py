@@ -255,30 +255,17 @@ class Assistant:
         history: list[Message] | None = None,
         _context: Context | None = None,
     ) -> tuple[list[str], list[Message]]:
-        new_messages: list[str] = []
-        async for message, history in self.run(
-            message, history=history, _context=_context
-        ):
-            new_messages.append(message)
-        return new_messages, history
-
-    async def run(
-        self,
-        message: str,
-        history: list[Message] | None = None,
-        _context: Context | None = None,
-    ) -> AsyncIterator[tuple[str, list[Message]]]:
         if not history:
             history = []
         else:
             history = history.copy()
         history.append(self._create_user_message(message))
-        async for ans, hist in self._iterate(
-            history=history,
-            context=_context,
-        ):
-            yield ans, hist
-        return
+
+        new_messages: list[str] = []
+
+        async for message, history in self._iterate(history=history, context=_context):
+            new_messages.append(message)
+        return new_messages, history
 
     async def _iterate(
         self,

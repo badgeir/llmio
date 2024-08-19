@@ -4,7 +4,7 @@ from datetime import datetime
 
 import openai
 
-from llmio import Assistant, Message
+from llmio import Assistant
 
 from tests.utils import mocked_async_openai_replies
 from openai.types.chat.chat_completion_message import (
@@ -59,13 +59,8 @@ async def test_context() -> None:
     ]
 
     user = User(id="1", name="Alice")
-    answers = []
-    history: list[Message] = []
     with mocked_async_openai_replies(mocks):
-        async for answer, history in assistant.run(
-            "Set a reminder for me", history=history, _context=user
-        ):
-            answers.append(answer)
+        answers, history = await assistant.speak("Set a reminder for me", _context=user)
     assert answers == [mocks[0].content, mocks[1].content]
     assert history == [
         {
