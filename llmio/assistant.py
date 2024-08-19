@@ -22,9 +22,9 @@ from openai.types.chat.chat_completion_message_tool_call_param import Function
 from llmio import function_parser
 
 
-State = TypeVar("State")
+Context = TypeVar("Context")
 
-_STATE_ARG_NAME = "_state"
+_CONTEXT_ARG_NAME = "_context"
 
 
 @dataclass
@@ -46,10 +46,10 @@ class _Tool:
             return ""
         return textwrap.dedent(self.function.__doc__).strip()
 
-    async def execute(self, params: pydantic.BaseModel, state: State | None) -> str:
+    async def execute(self, params: pydantic.BaseModel, context: Context | None) -> str:
         kwargs = {}
-        if _STATE_ARG_NAME in signature(self.function).parameters:
-            kwargs[_STATE_ARG_NAME] = state
+        if _CONTEXT_ARG_NAME in signature(self.function).parameters:
+            kwargs[_CONTEXT_ARG_NAME] = context
 
         if iscoroutinefunction(self.function):
             result = await self.function(**params.dict(), **kwargs)
@@ -129,46 +129,48 @@ class Assistant:
         params = set(signature(function).parameters.keys())
         if params not in [
             {"message"},
-            {_STATE_ARG_NAME, "message"},
+            {_CONTEXT_ARG_NAME, "message"},
         ]:
             raise ValueError(
-                "The message inspector must accept only 'message' or '_state, message' as arguments."
+                "The message inspector must accept only 'message' or '_context, message' as arguments."
             )
         self._message_callbacks.append(function)
         return function
 
     async def _run_prompt_inspectors(
-        self, prompt: list[Message], state: State | None
+        self, prompt: list[Message], context: Context | None
     ) -> None:
         for inspector in self._prompt_inspectors:
             kwargs = {}
-            if _STATE_ARG_NAME in signature(inspector).parameters:
-                kwargs[_STATE_ARG_NAME] = state
+            if _CONTEXT_ARG_NAME in signature(inspector).parameters:
+                kwargs[_CONTEXT_ARG_NAME] = context
             if iscoroutinefunction(inspector):
                 await inspector(prompt, **kwargs)
             else:
                 inspector(prompt, **kwargs)
 
     async def _run_output_inspectors(
-        self, content: AssistantMessage, state: State | None
+        self, content: AssistantMessage, context: Context | None
     ) -> None:
         for inspector in self._output_inspectors:
             kwargs = {}
-            if _STATE_ARG_NAME in signature(inspector).parameters:
-                kwargs[_STATE_ARG_NAME] = state
+            if _CONTEXT_ARG_NAME in signature(inspector).parameters:
+                kwargs[_CONTEXT_ARG_NAME] = context
             inspector(content, **kwargs)
             if iscoroutinefunction(inspector):
                 await inspector(content, **kwargs)
             else:
                 inspector(content, **kwargs)
 
-    async def _run_message_inspectors(self, content: str, state: State | None) -> None:
+    async def _run_message_inspectors(
+        self, content: str, context: Context | None
+    ) -> None:
         for callback in self._message_callbacks:
-            kwargs: dict[str, str | State | None] = {
+            kwargs: dict[str, str | Context | None] = {
                 "message": content,
             }
-            if _STATE_ARG_NAME in signature(callback).parameters:
-                kwargs[_STATE_ARG_NAME] = state
+            if _CONTEXT_ARG_NAME in signature(callback).parameters:
+                kwargs[_CONTEXT_ARG_NAME] = context
 
             if iscoroutinefunction(callback):
                 await callback(**kwargs)
@@ -251,10 +253,12 @@ class Assistant:
         self,
         message: str,
         history: list[Message] | None = None,
-        _state: State | None = None,
+        _context: Context | None = None,
     ) -> tuple[list[str], list[Message]]:
         new_messages: list[str] = []
-        async for message, history in self.run(message, history=history, _state=_state):
+        async for message, history in self.run(
+            message, history=history, _context=_context
+        ):
             new_messages.append(message)
         return new_messages, history
 
@@ -262,7 +266,7 @@ class Assistant:
         self,
         message: str,
         history: list[Message] | None = None,
-        _state: State | None = None,
+        _context: Context | None = None,
     ) -> AsyncIterator[tuple[str, list[Message]]]:
         if not history:
             history = []
@@ -271,7 +275,7 @@ class Assistant:
         history.append(self._create_user_message(message))
         async for ans, hist in self._iterate(
             history=history,
-            state=_state,
+            context=_context,
         ):
             yield ans, hist
         return
@@ -279,22 +283,22 @@ class Assistant:
     async def _iterate(
         self,
         history: list[Message],
-        state: State | None,
+        context: Context | None,
     ) -> AsyncIterator[tuple[str, list[Message]]]:
         prompt = self._create_prompt(history)
-        await self._run_prompt_inspectors(prompt, state)
+        await self._run_prompt_inspectors(prompt, context)
 
         completion = await self._get_completion(
             messages=prompt,
         )
         generated_message = completion.choices[0].message
         parsed_response = self._parse_completion(generated_message)
-        await self._run_output_inspectors(parsed_response, state)
+        await self._run_output_inspectors(parsed_response, context)
 
         history.append(parsed_response)
 
         if generated_message.content:
-            await self._run_message_inspectors(generated_message.content, state)
+            await self._run_message_inspectors(generated_message.content, context)
             yield generated_message.content, history
 
         if not generated_message.tool_calls:
@@ -322,7 +326,7 @@ class Assistant:
                 )
                 continue
 
-            awaitables.append(tool.execute(params, state=state))
+            awaitables.append(tool.execute(params, context=context))
             awaited_tool_calls.append(tool_call)
 
         tool_results = await asyncio.gather(*awaitables)
@@ -336,6 +340,6 @@ class Assistant:
 
         async for ans, hist in self._iterate(
             history=history,
-            state=state,
+            context=context,
         ):
             yield ans, hist

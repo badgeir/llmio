@@ -172,9 +172,9 @@ async def inspect_output(output: llmio.Message):
     pprint(output)
 ``` 
 
-### Pass a state to keep track of context in tools and hooks
+### Pass a context to keep track of context in tools and hooks
 
-Pass a state of any type to the assistant to keep track of context. This state will only be passed to tools and other hooks that include the special argument `_state`, not to the model itself.
+Pass an object of any type to the assistant to keep track of context. This context will only be passed to tools and other hooks that include the special argument `_context`, not to the model itself.
 
 ``` python
 @dataclass
@@ -183,20 +183,20 @@ class User:
 
 
 @assistant.tool()
-async def create_task(task_name: str, _state: User) -> str:
-    print(f"** Created task {task_name} for user '{_state.name}'")
+async def create_task(task_name: str, _context: User) -> str:
+    print(f"** Created task {task_name} for user '{_context.name}'")
     return "Created task"
 
 
 @assistant.on_message
-async def (message: str, _state: User) -> None:
-    print(f"** Sending message to user {_state.name}: {message}")
+async def (message: str, _context: User) -> None:
+    print(f"** Sending message to user {_context.name}: {message}")
 
 
 async def main() -> None:
     _ = await assistant.speak(
         "Create a task named 'Buy milk'",
-        _state=User(name="Alice"),
+        _context=User(name="Alice"),
     )
 ```
 
@@ -207,8 +207,8 @@ Since the Assistant class is stateless, asyncio.gather can be safely used to run
 ``` python
 async def main() -> None:
     await asyncio.gather(
-        assistant.speak("Create a task named 'Buy milk'", history=[], _state=User(name="Alice")),
-        assistant.speak("Create a task named 'Buy bread'", history=[], _state=User(name="Bob")),
+        assistant.speak("Create a task named 'Buy milk'", history=[], _context=User(name="Alice")),
+        assistant.speak("Create a task named 'Buy bread'", history=[], _context=User(name="Bob")),
     )
 ```
 

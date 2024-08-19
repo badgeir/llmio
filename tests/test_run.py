@@ -56,15 +56,15 @@ async def test_gather_tools() -> None:
     add_called_with = []
 
     @assistant.tool()
-    def add(num1: int, num2: int, _state: User) -> int:
-        add_called_with.append((num1, num2, User(id=_state.id)))
+    def add(num1: int, num2: int, _context: User) -> int:
+        add_called_with.append((num1, num2, User(id=_context.id)))
         return num1 + num2
 
     on_message_called_with = []
 
     @assistant.on_message
-    async def on_message(message: str, _state: User) -> None:
-        on_message_called_with.append((message, User(id=_state.id)))
+    async def on_message(message: str, _context: User) -> None:
+        on_message_called_with.append((message, User(id=_context.id)))
         pass
 
     with utils.mocked_async_openai_lookup(
@@ -92,7 +92,7 @@ async def test_gather_tools() -> None:
         }
     ):
         results = await asyncio.gather(
-            *[assistant.speak(f"{i} + {i}?", _state=User(id=i)) for i in range(100)]
+            *[assistant.speak(f"{i} + {i}?", _context=User(id=i)) for i in range(100)]
         )
 
     for i, (messages, history) in enumerate(results):
