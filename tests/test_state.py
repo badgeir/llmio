@@ -76,11 +76,7 @@ async def test_state() -> None:
         {
             "role": "tool",
             "tool_call_id": "set_reminder_1",
-            "content": json.dumps(
-                {
-                    "result": "Successfully created reminder for user 1: A reminder at 2022-01-01 00:00:00"
-                }
-            ),
+            "content": "Successfully created reminder for user 1: A reminder at 2022-01-01 00:00:00",
         },
         assistant._parse_completion(mocks[1]),
     ]
