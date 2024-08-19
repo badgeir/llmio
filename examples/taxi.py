@@ -1,5 +1,6 @@
 import asyncio
 import os
+import textwrap
 from typing import Optional
 
 from pydantic import BaseModel
@@ -35,11 +36,15 @@ def book_taxi(
     and the message field should contain an explanation for why it failed.
     """
     print(
-        f"""
-        Booking a taxi for {n_passengers} passengers
-        from {pickup_location} to {destination}.
-        {additional_info if additional_info else ""}
+        textwrap.dedent(
+            f"""
+        **Booking a taxi for
+            - {n_passengers} passengers
+            - from {pickup_location}
+            - to {destination}.
+            {"- " + additional_info if additional_info else ""}
     """
+        )
     )
     return Result(success=True, booking_id="abc123")
 
@@ -47,8 +52,9 @@ def book_taxi(
 async def main() -> None:
     history: list[Message] = []
     while True:
-        async for answer, history in assistant.speak(input(">>"), history=history):
-            print(answer)
+        messages, history = await assistant.speak(input(">>"), history=history)
+        for message in messages:
+            print(message)
 
 
 if __name__ == "__main__":

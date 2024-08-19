@@ -12,7 +12,7 @@ def model_from_function(function: Callable) -> type[BaseModel]:
     type_hints = get_all_type_hints(function)
     fields: Dict[str, Tuple[Any, Any]] = {}
     for name, param in parameters.items():
-        if name == "_state":
+        if name == "_context":
             continue
 
         if param.annotation is param.empty:

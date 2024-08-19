@@ -22,9 +22,9 @@ from openai.types.chat.chat_completion_message_tool_call_param import Function
 from llmio import function_parser
 
 
-State = TypeVar("State")
+Context = TypeVar("Context")
 
-_STATE_ARG_NAME = "_state"
+_CONTEXT_ARG_NAME = "_context"
 
 
 @dataclass
@@ -41,27 +41,22 @@ class _Tool:
         return function_parser.model_from_function(self.function)
 
     @property
-    def returns(self) -> Type[pydantic.BaseModel]:
-        annotation = self.function.__annotations__["return"]
-        return pydantic.create_model("Result", result=(annotation, ...))
-
-    @property
     def description(self) -> str:
         if self.function.__doc__ is None:
             return ""
         return textwrap.dedent(self.function.__doc__).strip()
 
-    async def execute(self, params: pydantic.BaseModel, state: State | None):
+    async def execute(self, params: pydantic.BaseModel, context: Context | None) -> str:
         kwargs = {}
-        if _STATE_ARG_NAME in signature(self.function).parameters:
-            kwargs[_STATE_ARG_NAME] = state
+        if _CONTEXT_ARG_NAME in signature(self.function).parameters:
+            kwargs[_CONTEXT_ARG_NAME] = context
 
         if iscoroutinefunction(self.function):
             result = await self.function(**params.dict(), **kwargs)
         else:
             result = self.function(**params.dict(), **kwargs)
 
-        return self.returns(result=result)
+        return str(result)
 
     @property
     def tool_definition(self) -> dict:
@@ -91,6 +86,7 @@ class Assistant:
         self._tools: list[_Tool] = []
         self._prompt_inspectors: list[Callable] = []
         self._output_inspectors: list[Callable] = []
+        self._message_callbacks: list[Callable] = []
 
     def _get_system_prompt(self) -> SystemMessage:
         return self._create_system_message(self._instruction)
@@ -114,10 +110,6 @@ class Assistant:
 
     def tool(self, strict: bool = False) -> Callable:
         def decorator(function: Callable) -> Callable:
-            if "return" not in function.__annotations__:
-                raise ValueError(
-                    f"The return type of the tool {function.__name__} must be annotated with ->"
-                )
             self._tools.append(
                 _Tool(function=function, strict=strict),
             )
@@ -133,23 +125,57 @@ class Assistant:
         self._output_inspectors.append(function)
         return function
 
-    def _run_prompt_inspectors(
-        self, prompt: list[Message], state: State | None
+    def on_message(self, function: Callable) -> Callable:
+        params = set(signature(function).parameters.keys())
+        if params not in [
+            {"message"},
+            {_CONTEXT_ARG_NAME, "message"},
+        ]:
+            raise ValueError(
+                "The message inspector must accept only 'message' or '_context, message' as arguments."
+            )
+        self._message_callbacks.append(function)
+        return function
+
+    async def _run_prompt_inspectors(
+        self, prompt: list[Message], context: Context | None
     ) -> None:
         for inspector in self._prompt_inspectors:
             kwargs = {}
-            if _STATE_ARG_NAME in signature(inspector).parameters:
-                kwargs[_STATE_ARG_NAME] = state
-            inspector(prompt, **kwargs)
+            if _CONTEXT_ARG_NAME in signature(inspector).parameters:
+                kwargs[_CONTEXT_ARG_NAME] = context
+            if iscoroutinefunction(inspector):
+                await inspector(prompt, **kwargs)
+            else:
+                inspector(prompt, **kwargs)
 
-    def _run_output_inspectors(
-        self, content: AssistantMessage, state: State | None
+    async def _run_output_inspectors(
+        self, content: AssistantMessage, context: Context | None
     ) -> None:
         for inspector in self._output_inspectors:
             kwargs = {}
-            if _STATE_ARG_NAME in signature(inspector).parameters:
-                kwargs[_STATE_ARG_NAME] = state
+            if _CONTEXT_ARG_NAME in signature(inspector).parameters:
+                kwargs[_CONTEXT_ARG_NAME] = context
             inspector(content, **kwargs)
+            if iscoroutinefunction(inspector):
+                await inspector(content, **kwargs)
+            else:
+                inspector(content, **kwargs)
+
+    async def _run_message_inspectors(
+        self, content: str, context: Context | None
+    ) -> None:
+        for callback in self._message_callbacks:
+            kwargs: dict[str, str | Context | None] = {
+                "message": content,
+            }
+            if _CONTEXT_ARG_NAME in signature(callback).parameters:
+                kwargs[_CONTEXT_ARG_NAME] = context
+
+            if iscoroutinefunction(callback):
+                await callback(**kwargs)
+            else:
+                callback(**kwargs)
 
     @staticmethod
     def _parse_completion(
@@ -227,14 +253,29 @@ class Assistant:
         self,
         message: str,
         history: list[Message] | None = None,
-        _state: State | None = None,
+        _context: Context | None = None,
+    ) -> tuple[list[str], list[Message]]:
+        new_messages: list[str] = []
+        async for message, history in self.run(
+            message, history=history, _context=_context
+        ):
+            new_messages.append(message)
+        return new_messages, history
+
+    async def run(
+        self,
+        message: str,
+        history: list[Message] | None = None,
+        _context: Context | None = None,
     ) -> AsyncIterator[tuple[str, list[Message]]]:
         if not history:
             history = []
+        else:
+            history = history.copy()
         history.append(self._create_user_message(message))
         async for ans, hist in self._iterate(
             history=history,
-            state=_state,
+            context=_context,
         ):
             yield ans, hist
         return
@@ -242,21 +283,22 @@ class Assistant:
     async def _iterate(
         self,
         history: list[Message],
-        state: State | None,
+        context: Context | None,
     ) -> AsyncIterator[tuple[str, list[Message]]]:
         prompt = self._create_prompt(history)
-        self._run_prompt_inspectors(prompt, state)
+        await self._run_prompt_inspectors(prompt, context)
 
-        result = await self._get_completion(
+        completion = await self._get_completion(
             messages=prompt,
         )
-        generated_message = result.choices[0].message
+        generated_message = completion.choices[0].message
         parsed_response = self._parse_completion(generated_message)
-        self._run_output_inspectors(parsed_response, state)
+        await self._run_output_inspectors(parsed_response, context)
 
         history.append(parsed_response)
 
         if generated_message.content:
+            await self._run_message_inspectors(generated_message.content, context)
             yield generated_message.content, history
 
         if not generated_message.tool_calls:
@@ -284,20 +326,20 @@ class Assistant:
                 )
                 continue
 
-            awaitables.append(tool.execute(params, state=state))
+            awaitables.append(tool.execute(params, context=context))
             awaited_tool_calls.append(tool_call)
 
         tool_results = await asyncio.gather(*awaitables)
-        for tool_call, result in zip(awaited_tool_calls, tool_results):
+        for tool_call, tool_result in zip(awaited_tool_calls, tool_results):
             history.append(
                 self._create_tool_message(
                     tool_call_id=tool_call.id,
-                    content=result.json(),
+                    content=tool_result,
                 )
             )
 
         async for ans, hist in self._iterate(
             history=history,
-            state=state,
+            context=context,
         ):
             yield ans, hist

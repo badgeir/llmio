@@ -14,7 +14,7 @@ from openai.types.chat.chat_completion_message import (
 from openai.types.chat.chat_completion_message_tool_call import Function
 
 
-async def test_state() -> None:
+async def test_context() -> None:
     assistant = Assistant(
         instruction=f"You are a personal assistant. You can help users set reminders. The current time is {datetime.now()}",
         client=openai.AsyncOpenAI(api_key="abc"),
@@ -28,9 +28,9 @@ async def test_state() -> None:
 
     @assistant.tool()
     async def set_reminder(
-        description: str, datetime_iso: datetime, _state: User
+        description: str, datetime_iso: datetime, _context: User
     ) -> str:
-        return f"Successfully created reminder for user {_state.id}: {description} at {datetime_iso}"
+        return f"Successfully created reminder for user {_context.id}: {description} at {datetime_iso}"
 
     mocks = [
         ChatCompletionMessage.construct(
@@ -62,8 +62,8 @@ async def test_state() -> None:
     answers = []
     history: list[Message] = []
     with mocked_async_openai_replies(mocks):
-        async for answer, history in assistant.speak(
-            "Set a reminder for me", history=history, _state=user
+        async for answer, history in assistant.run(
+            "Set a reminder for me", history=history, _context=user
         ):
             answers.append(answer)
     assert answers == [mocks[0].content, mocks[1].content]
@@ -76,11 +76,7 @@ async def test_state() -> None:
         {
             "role": "tool",
             "tool_call_id": "set_reminder_1",
-            "content": json.dumps(
-                {
-                    "result": "Successfully created reminder for user 1: A reminder at 2022-01-01 00:00:00"
-                }
-            ),
+            "content": "Successfully created reminder for user 1: A reminder at 2022-01-01 00:00:00",
         },
         assistant._parse_completion(mocks[1]),
     ]

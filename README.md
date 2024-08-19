@@ -21,38 +21,60 @@ import asyncio
 import os
 
 import openai
+from llmio.assistant import Assistant
 
-from llmio import Assistant, Message
 
-
+# Define an assistant that can add and multiply numbers using tools.
+# The assistant will also print any messages it receives.
 assistant = Assistant(
+    # Define the assistant's instructions.
     instruction="""
         You are a calculating assistant.
-        Always use tools to calculate things, never try to calculate things on your own.
+        Always use tools to calculate things.
+        Never try to calculate things on your own.
         """,
+    # Pass in an OpenAI client that will be used to interact with the model.
+    # Any API that implements the OpenAI interface can be used.
     client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
     model="gpt-4o-mini",
 )
 
 
+# Define tools using the `@assistant.tool()` decorator.
+# Tools are automatically parsed by their type annotations
+# and added to the assistant's capabilities.
 @assistant.tool()
 async def add(num1: float, num2: float) -> float:
-    print(f"** Adding {num1} + {num2}")
+    print(f"** Adding: {num1} + {num2}")
     return num1 + num2
 
 
+# Tools can also be synchronous.
 @assistant.tool()
-async def multiply(num1: float, num2: float) -> float:
-    print(f"** Multiplying {num1} * {num2}")
+def multiply(num1: float, num2: float) -> float:
+    print(f"** Multiplying: {num1} * {num2}")
     return num1 * num2
 
 
-async def main():
-    history: list[Message] = []
+# Define a message handler using the `@assistant.on_message` decorator.
+# The handler is optional. The messages will also be returned by the `speak` method.
+@assistant.on_message
+async def print_message(message: str):
+    print(f"** Posting message: '{message}'")
 
-    while True:
-        async for reply, history in assistant.speak(input(">>"), history):
-            print("Output:", reply)
+
+async def main():
+    # pylint: disable=unused-variable
+
+    # Run the assistant with a message.
+    # An empty history might also be passed in.
+    # The assistant will return the messages it generated and the updated history.
+    messages, history = await assistant.speak("Hi! how much is 1 + 1?")
+    # The assistant is stateless and does not remember previous messages.
+    # The history must be passed in to maintain context.
+    messages, history = await assistant.speak(
+        "and how much is that times two?", history=history
+    )
 
 
 if __name__ == "__main__":
@@ -98,7 +120,7 @@ Tools:
 
 #### Parameter descriptions
 
-`pydantic.Field` can be used to describe parameters in detail.
+`pydantic.Field` can be used to describe parameters in detail. These descriptions will be included in the schema and help the language model understand the tool's requirements.
 
 ``` python
 @assistant.tool()
@@ -111,30 +133,6 @@ async def book_flight(
 ) -> str:
     """Books a flight"""
     return f"Booked flight from {origin} to {destination} on {date}"
-
-print(assistant.summary())
-```
-
-Output:
-``` plaintext
-Tools:
-  - book_flight
-    Schema:
-      {'description': 'Books a flight',
-       'name': 'book_flight',
-       'parameters': {'properties': {'date': {'description': 'The date of the '
-                                                             'flight. ISO-format is '
-                                                             'expected.',
-                                              'format': 'date-time',
-                                              'type': 'string'},
-                                     'destination': {'description': 'The destination '
-                                                                    'airport',
-                                                     'type': 'string'},
-                                     'origin': {'description': 'The origin airport',
-                                                'type': 'string'}},
-                      'required': ['destination', 'origin', 'date'],
-                      'type': 'object'},
-       'strict': False}
 ```
 
 ### Optional parameters
@@ -154,44 +152,90 @@ For documentation on supported types, see [pydantic's documentation](https://doc
 
 ### Hooks
 
-Add hooks to receive callbacks with prompts and outputs.
+Add hooks to receive callbacks with prompts and outputs. Note that llmio does not care what name you give to the hooks, as long as they are decorated with the correct decorator.
 
 ``` python
+@assistant.on_message
+async def on_message(message: str):
+    # on_message will be called with new messages from the model
+    pprint(prompt)
+
 @assistant.inspect_prompt
-def print_prompt(prompt: list[Message]):
+async def inspect_prompt(prompt: list[llmio.Message]):
+    # inspect_prompt will be called with the prompt before it is sent to the model
     pprint(prompt)
 
 
 @assistant.inspect_output
-def print_model_output(output: Message):
+async def inspect_output(output: llmio.Message):
+    # inspect_output will be called with the full model output
     pprint(output)
 ``` 
 
-### Pass a state to keep track of context in tools and hooks
+### Pass a context to keep track of context in tools and hooks
 
-Pass a state of any type to the assistant to keep track of context. This state will only be passed to tools and inspectors that include the special argument `_state`, not to the model itself.
+Pass an object of any type to the assistant to keep track of context. This context will only be passed to tools and other hooks that include the special argument `_context`, not to the model itself.
 
 ``` python
 @dataclass
 class User:
-    id: str
     name: str
 
 
 @assistant.tool()
-async def create_task(task_name: str, _state: User) -> str:
-    print(f"Created task {task_name} for user {_state.id}")
+async def create_task(task_name: str, _context: User) -> str:
+    print(f"** Created task {task_name} for user '{_context.name}'")
     return "Created task"
 
+
+@assistant.on_message
+async def (message: str, _context: User) -> None:
+    print(f"** Sending message to user {_context.name}: {message}")
+
+
+async def main() -> None:
+    _ = await assistant.speak(
+        "Create a task named 'Buy milk'",
+        _context=User(name="Alice"),
+    )
+```
+
+### Batched execution
+
+Since the Assistant class is stateless, asyncio.gather can be safely used to run multiple messages in parallel.
+
+``` python
+async def main() -> None:
+    await asyncio.gather(
+        assistant.speak("Create a task named 'Buy milk'", history=[], _context=User(name="Alice")),
+        assistant.speak("Create a task named 'Buy bread'", history=[], _context=User(name="Bob")),
+    )
+```
+
+### A simple example of looping
+
+``` python
+@assistant.on_message
+async def print_message(message: str):
+    print(message)
 
 
 async def main() -> None:
     history = []
-    async for reply, history in assistant.speak(
-        "Create a task named 'Buy milk'",
-        history,
-        _state=User(id="1", name="Alice"),
-    ):
-        print(reply)
+    
+    while True:
+        _, history = await assistant.speak(input(">>"), history=history)
 
+```
+
+### Or by using the messages returned by the assistant
+
+``` python
+async def main() -> None:
+    history = []
+    
+    while True:
+        messages, history = await assistant.speak(input(">>"), history=history)
+        for message in messages:
+            print(message)
 ```

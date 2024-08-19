@@ -61,7 +61,7 @@ async def test_basics() -> None:
     answers = []
     history: list[Message] = []
     with mocked_async_openai_replies(mocks):
-        async for answer, history in assistant.speak(
+        async for answer, history in assistant.run(
             "What is (10 + 20) * 2?", history=history
         ):
             answers.append(answer)
@@ -75,13 +75,13 @@ async def test_basics() -> None:
         {
             "role": "tool",
             "tool_call_id": "add_1",
-            "content": json.dumps({"result": 30.0}),
+            "content": "30.0",
         },
         assistant._parse_completion(mocks[1]),
         {
             "role": "tool",
             "tool_call_id": "multiply_1",
-            "content": json.dumps({"result": 60.0}),
+            "content": "60.0",
         },
         assistant._parse_completion(mocks[2]),
     ]
@@ -130,7 +130,7 @@ async def test_parallel_tool_calls() -> None:
     answers = []
     history: list[Message] = []
     with mocked_async_openai_replies(mocks):
-        async for answer, history in assistant.speak(
+        async for answer, history in assistant.run(
             "What is (10 + 20) and (3 * 9)?", history=history
         ):
             answers.append(answer)
@@ -144,12 +144,12 @@ async def test_parallel_tool_calls() -> None:
         {
             "role": "tool",
             "tool_call_id": "add_1",
-            "content": json.dumps({"result": 30.0}),
+            "content": "30.0",
         },
         {
             "role": "tool",
             "tool_call_id": "multiply_1",
-            "content": json.dumps({"result": 27.0}),
+            "content": "27.0",
         },
         assistant._parse_completion(mocks[1]),
     ]
