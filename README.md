@@ -1,3 +1,4 @@
+
 # llmio
 ## LLM I/O - Easily connect large language models into your application
 
@@ -5,8 +6,11 @@
 ![mypy](https://github.com/badgeir/llmio/actions/workflows/mypy.yml/badge.svg)
 ![ruff](https://github.com/badgeir/llmio/actions/workflows/ruff.yml/badge.svg)
 ![tests](https://github.com/badgeir/llmio/actions/workflows/test.yml/badge.svg)
+[![pypi](https://img.shields.io/pypi/v/llmio.svg)](https://pypi.python.org/pypi/llmio)
+[![versions](https://img.shields.io/pypi/pyversions/llmio.svg)](https://github.com/badgeir/llmio)
 
 llmio is a lightweight library that uses type annotations to enable tool execution with OpenAI-compatible APIs such as OpenAI, Azure OpenAI, AWS Bedrock Access Gateway and Huggingface TGI.
+
 
 # Setup
 
