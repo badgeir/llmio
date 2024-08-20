@@ -20,7 +20,7 @@ from openai.types.chat import (
 )
 from openai.types.chat.chat_completion_message_tool_call_param import Function
 
-from llmio import function_parser
+from llmio import function_parser, errors
 
 
 _Context = TypeVar("_Context")
@@ -102,11 +102,27 @@ class Agent:
         instruction: str,
         client: openai.AsyncOpenAI,
         model: str = "gpt-4o-mini",
+        graceful_errors: bool = True,
     ):
+        """
+        Initializes the agent with an instruction, OpenAI client, and model.
+
+        Args:
+            instruction: The instruction that the agent will follow.
+            client: The OpenAI client to use for API requests.
+            model: The model to use for completions.
+            graceful_errors: Whether the agent should handle invalid parameters / tool calls
+                                and try to continue the interaction.
+                             If set to False, the agent will raise an exception when an
+                                uninterpretable tool call is returned.
+                             If set to True, the agent will try to explain the error
+                                to the model and continue the interaction.
+        """
         self._model = model
         self._client = client
-
         self._instruction = textwrap.dedent(instruction).strip()
+
+        self._graceful_errors = graceful_errors
 
         self._tools: list[_Tool] = []
         self._prompt_inspectors: list[Callable] = []
@@ -363,6 +379,19 @@ class Agent:
                 tool = self._get_tool_by_name(tool_call.function.name)
                 params = tool.parse_args(tool_call.function.arguments)
             except (ValueError, pydantic.ValidationError) as e:
+                error_message: str
+                if not self._graceful_errors:
+                    match e:
+                        case pydantic.ValidationError():
+                            raise errors.BadToolCall(
+                                f"Invalid tool call name '{tool_call.function.name}' received."
+                            ) from e
+                        case ValueError():
+                            raise errors.BadToolCall(
+                                f"Invalid tool call arguments '{tool_call.function.arguments}' received."
+                            ) from e
+                        case _:
+                            assert_never(e)
                 match e:
                     case pydantic.ValidationError():
                         error_message = (

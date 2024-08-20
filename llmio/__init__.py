@@ -7,6 +7,8 @@ from .agent import (
     ToolMessage,
 )
 
+from .errors import BadToolCall
+
 
 __all__ = [
     "Agent",
@@ -15,4 +17,5 @@ __all__ = [
     "AssistantMessage",
     "ToolCall",
     "ToolMessage",
+    "BadToolCall",
 ]

@@ -40,6 +40,7 @@ disable = [
     "invalid-name",
     "too-many-locals",
     "too-few-public-methods",
+    "too-many-instance-attributes",
 ]
 
 [tool.ruff]

@@ -1,8 +1,9 @@
 import json
 
 import openai
+import pytest
 
-from llmio import Agent
+from llmio import Agent, errors
 
 from tests.utils import mocked_async_openai_replies
 from openai.types.chat.chat_completion_message import (
@@ -76,3 +77,63 @@ async def test_basics() -> None:
         },
         agent._parse_completion(mocks[2]),
     ]
+
+
+async def test_bad_tool_call_args() -> None:
+    agent = Agent(
+        instruction="You are a calculator",
+        client=openai.AsyncOpenAI(api_key="abc"),
+        graceful_errors=False,
+    )
+
+    @agent.tool()
+    async def add(num1: float, num2: float) -> float:
+        return num1 + num2
+
+    mocks = [
+        ChatCompletionMessage.construct(
+            tool_calls=[
+                ChatCompletionMessageToolCall.construct(
+                    id="add_1",
+                    type="function",
+                    function=Function.construct(
+                        name="add", arguments=json.dumps({"num1": 10, "num3": 20})
+                    ),
+                ),
+            ],
+            role="assistant",
+        ),
+    ]
+    with mocked_async_openai_replies(mocks):
+        with pytest.raises(errors.BadToolCall):
+            await agent.speak("What is (10 + 20) / 2?")
+
+
+async def test_bad_tool_call_name() -> None:
+    agent = Agent(
+        instruction="You are a calculator",
+        client=openai.AsyncOpenAI(api_key="abc"),
+        graceful_errors=False,
+    )
+
+    @agent.tool()
+    async def add(num1: float, num2: float) -> float:
+        return num1 + num2
+
+    mocks = [
+        ChatCompletionMessage.construct(
+            tool_calls=[
+                ChatCompletionMessageToolCall.construct(
+                    id="add_1",
+                    type="function",
+                    function=Function.construct(
+                        name="mul", arguments=json.dumps({"num1": 10, "num2": 20})
+                    ),
+                ),
+            ],
+            role="assistant",
+        ),
+    ]
+    with mocked_async_openai_replies(mocks):
+        with pytest.raises(errors.BadToolCall):
+            await agent.speak("What is (10 + 20) / 2?")
