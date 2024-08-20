@@ -13,10 +13,11 @@ from openai.types.chat.chat_completion_message import (
 from openai.types.chat.chat_completion_message_tool_call import Function
 
 
-async def test_basics() -> None:
+async def test_graceful_handling() -> None:
     agent = Agent(
         instruction="You are a calculator",
         client=openai.AsyncOpenAI(api_key="abc"),
+        graceful_errors=True,
     )
 
     @agent.tool()
@@ -79,7 +80,7 @@ async def test_basics() -> None:
     ]
 
 
-async def test_bad_tool_call_args() -> None:
+async def test_bad_tool_call_args_exception() -> None:
     agent = Agent(
         instruction="You are a calculator",
         client=openai.AsyncOpenAI(api_key="abc"),
@@ -109,7 +110,7 @@ async def test_bad_tool_call_args() -> None:
             await agent.speak("What is (10 + 20) / 2?")
 
 
-async def test_bad_tool_call_name() -> None:
+async def test_bad_tool_call_name_exception() -> None:
     agent = Agent(
         instruction="You are a calculator",
         client=openai.AsyncOpenAI(api_key="abc"),

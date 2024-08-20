@@ -102,7 +102,7 @@ class Agent:
         instruction: str,
         client: openai.AsyncOpenAI,
         model: str = "gpt-4o-mini",
-        graceful_errors: bool = True,
+        graceful_errors: bool = False,
     ):
         """
         Initializes the agent with an instruction, OpenAI client, and model.
