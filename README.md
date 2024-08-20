@@ -48,8 +48,9 @@ agent = Agent(
 
 
 # Define tools using the `@agent.tool()` decorator.
-# Tools are automatically parsed by their type annotations
-# and added to the agent's capabilities.
+# Tools are automatically parsed by their type annotations and added to the agent's capabilities.
+# The code itself is never seen by the LLM, only the function signature is exposed.
+# When the agent invokes a tool, the corresponding function is executed locally.
 @agent.tool()
 async def add(num1: float, num2: float) -> float:
     print(f"** Adding: {num1} + {num2}")
