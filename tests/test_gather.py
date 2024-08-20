@@ -7,7 +7,7 @@ from openai.types.chat import ChatCompletionMessage, ChatCompletionMessageToolCa
 from openai.types.chat.chat_completion_message_tool_call import Function
 
 from llmio import (
-    Assistant,
+    Agent,
     Message,
     UserMessage,
     AssistantMessage,
@@ -18,7 +18,7 @@ from tests import utils
 
 
 async def test_gather_basic() -> None:
-    assistant = Assistant(
+    agent = Agent(
         instruction="instruction",
         client=openai.AsyncOpenAI(api_key="abc"),
         model="gpt-4o-mini",
@@ -26,7 +26,7 @@ async def test_gather_basic() -> None:
 
     on_message_called_with = []
 
-    @assistant.on_message
+    @agent.on_message
     async def on_message(message: str) -> None:
         on_message_called_with.append(message)
         pass
@@ -37,7 +37,7 @@ async def test_gather_basic() -> None:
             for i in range(100)
         }
     ):
-        results = await asyncio.gather(*[assistant.speak(f"Q{i}") for i in range(100)])
+        results = await asyncio.gather(*[agent.speak(f"Q{i}") for i in range(100)])
 
     for i, (messages, history) in enumerate(results):
         assert history == [
@@ -52,7 +52,7 @@ async def test_gather_basic() -> None:
 async def test_gather_tools() -> None:
     batch_size = 100
 
-    assistant = Assistant(
+    agent = Agent(
         instruction="instruction",
         client=openai.AsyncOpenAI(api_key="abc"),
         model="gpt-4o-mini",
@@ -65,12 +65,12 @@ async def test_gather_tools() -> None:
     add_called_with = []
     mul_called_with = []
 
-    @assistant.tool()
+    @agent.tool()
     def add(num1: int, num2: int, _context: User) -> str:
         add_called_with.append((num1, num2, User(id=_context.id)))
         return f"add: {num1 + num2}"
 
-    @assistant.tool()
+    @agent.tool()
     async def multiply(num1: int, num2: int) -> str:
         mul_called_with.append((num1, num2))
         return f"mul: {num1 * num2}"
@@ -79,15 +79,15 @@ async def test_gather_tools() -> None:
     inspect_prompt_async_called_with = []
     inspect_output_async_called_with = []
 
-    @assistant.on_message
+    @agent.on_message
     async def on_message(message: str, _context: User) -> None:
         on_message_async_called_with.append((message, User(id=_context.id)))
 
-    @assistant.inspect_prompt
+    @agent.inspect_prompt
     async def inspect_prompt_async(prompt: list[Message], _context: User) -> None:
         inspect_prompt_async_called_with.append((prompt, User(id=_context.id)))
 
-    @assistant.inspect_output
+    @agent.inspect_output
     async def inspect_output_async(message: Message, _context: User) -> None:
         inspect_output_async_called_with.append((message, User(id=_context.id)))
 
@@ -95,15 +95,15 @@ async def test_gather_tools() -> None:
     inspect_prompt_sync_called_with = []
     inspect_output_sync_called_with = []
 
-    @assistant.on_message
+    @agent.on_message
     def on_message_sync(message: str, _context: User) -> None:
         on_message_sync_called_with.append((message, User(id=_context.id)))
 
-    @assistant.inspect_prompt
+    @agent.inspect_prompt
     def inspect_prompt_sync(prompt: list[Message], _context: User) -> None:
         inspect_prompt_sync_called_with.append((prompt, User(id=_context.id)))
 
-    @assistant.inspect_output
+    @agent.inspect_output
     def inspect_output_sync(message: Message, _context: User) -> None:
         inspect_output_sync_called_with.append((message, User(id=_context.id)))
 
@@ -141,7 +141,7 @@ async def test_gather_tools() -> None:
     ):
         results = await asyncio.gather(
             *[
-                assistant.speak(f"{i} + {i} and {i} * {i}?", _context=User(id=i))
+                agent.speak(f"{i} + {i} and {i} * {i}?", _context=User(id=i))
                 for i in range(batch_size)
             ]
         )

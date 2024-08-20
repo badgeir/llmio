@@ -12,7 +12,7 @@ def mocked_async_openai_replies(
     replies: list[ChatCompletionMessage],
 ):
     with patch(
-        "llmio.Assistant._get_completion",
+        "llmio.Agent._get_completion",
         side_effect=[
             ChatCompletion.construct(choices=[Choice.construct(message=reply)])
             for reply in replies
@@ -37,7 +37,7 @@ def mocked_async_openai_lookup(
         raise ValueError(f"Unexpected prompt: {content}")
 
     with patch(
-        "llmio.Assistant._get_completion",
+        "llmio.Agent._get_completion",
         side_effect=side_effect,
     ):
         yield replies

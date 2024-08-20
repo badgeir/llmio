@@ -2,7 +2,7 @@ import json
 
 import openai
 
-from llmio import Assistant
+from llmio import Agent
 
 from tests.utils import mocked_async_openai_replies
 from openai.types.chat.chat_completion_message import (
@@ -13,16 +13,16 @@ from openai.types.chat.chat_completion_message_tool_call import Function
 
 
 async def test_basics() -> None:
-    assistant = Assistant(
+    agent = Agent(
         instruction="You are a calculator",
         client=openai.AsyncOpenAI(api_key="abc"),
     )
 
-    @assistant.tool()
+    @agent.tool()
     async def add(num1: float, num2: float) -> float:
         return num1 + num2
 
-    @assistant.tool()
+    @agent.tool()
     async def multiply(num1: float, num2: float) -> float:
         return num1 * num2
 
@@ -59,40 +59,40 @@ async def test_basics() -> None:
         ),
     ]
     with mocked_async_openai_replies(mocks):
-        answers, history = await assistant.speak("What is (10 + 20) * 2?")
+        answers, history = await agent.speak("What is (10 + 20) * 2?")
     assert answers == [mocks[0].content, mocks[2].content]
     assert history == [
         {
             "role": "user",
             "content": "What is (10 + 20) * 2?",
         },
-        assistant._parse_completion(mocks[0]),
+        agent._parse_completion(mocks[0]),
         {
             "role": "tool",
             "tool_call_id": "add_1",
             "content": "30.0",
         },
-        assistant._parse_completion(mocks[1]),
+        agent._parse_completion(mocks[1]),
         {
             "role": "tool",
             "tool_call_id": "multiply_1",
             "content": "60.0",
         },
-        assistant._parse_completion(mocks[2]),
+        agent._parse_completion(mocks[2]),
     ]
 
 
 async def test_parallel_tool_calls() -> None:
-    assistant = Assistant(
+    agent = Agent(
         instruction="You are a calculator",
         client=openai.AsyncOpenAI(api_key="abc"),
     )
 
-    @assistant.tool()
+    @agent.tool()
     async def add(num1: float, num2: float) -> float:
         return num1 + num2
 
-    @assistant.tool()
+    @agent.tool()
     async def multiply(num1: float, num2: float) -> float:
         return num1 * num2
 
@@ -123,14 +123,14 @@ async def test_parallel_tool_calls() -> None:
         ),
     ]
     with mocked_async_openai_replies(mocks):
-        answers, history = await assistant.speak("What is (10 + 20) and (3 * 9)?")
+        answers, history = await agent.speak("What is (10 + 20) and (3 * 9)?")
     assert answers == [mocks[0].content, mocks[1].content]
     assert history == [
         {
             "role": "user",
             "content": "What is (10 + 20) and (3 * 9)?",
         },
-        assistant._parse_completion(mocks[0]),
+        agent._parse_completion(mocks[0]),
         {
             "role": "tool",
             "tool_call_id": "add_1",
@@ -141,5 +141,5 @@ async def test_parallel_tool_calls() -> None:
             "tool_call_id": "multiply_1",
             "content": "27.0",
         },
-        assistant._parse_completion(mocks[1]),
+        agent._parse_completion(mocks[1]),
     ]

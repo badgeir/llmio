@@ -6,11 +6,11 @@ from typing import Optional
 from pydantic import BaseModel
 
 import openai
-from llmio.assistant import Assistant, Message
+from llmio.agent import Agent, Message
 
 
-assistant = Assistant(
-    instruction="You are a taxi booking assistant.",
+agent = Agent(
+    instruction="You are a taxi booking agent.",
     client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
     model="gpt-4o-mini",
 )
@@ -22,7 +22,7 @@ class Result(BaseModel):
     message: Optional[str] = None
 
 
-@assistant.tool()
+@agent.tool()
 def book_taxi(
     n_passengers: int,
     pickup_location: str,
@@ -52,7 +52,7 @@ def book_taxi(
 async def main() -> None:
     history: list[Message] = []
     while True:
-        messages, history = await assistant.speak(input(">>"), history=history)
+        messages, history = await agent.speak(input(">>"), history=history)
         for message in messages:
             print(message)
 
