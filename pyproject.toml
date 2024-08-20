@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "llmio"
-version = "0.5.2"
+version = "0.5.3"
 description = "Easily connect large language models into your application"
 authors = ["Peter Leupi"]
 license = "MIT"
@@ -13,6 +13,7 @@ documentation = "https://github.com/badgeir/llmio"
 python = "^3.10"
 openai = "^1.41.0"
 pydantic = "1.10.13"
+typing-extensions = "^4.12.2"
 
 
 [tool.poetry.group.dev.dependencies]
