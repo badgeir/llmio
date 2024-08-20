@@ -23,7 +23,7 @@ from openai.types.chat.chat_completion_message_tool_call_param import Function
 from llmio import function_parser
 
 
-Context = TypeVar("Context")
+_Context = TypeVar("_Context")
 
 _CONTEXT_ARG_NAME = "_context"
 
@@ -39,15 +39,30 @@ class _Tool:
 
     @property
     def params(self) -> Type[pydantic.BaseModel]:
+        """
+        Returns a Pydantic model dynamically created from the function signature.
+        The pydantic model is used both to validate input arguments
+        and to generate the function schema that is sent to the OpenAI API.
+        """
         return function_parser.model_from_function(self.function)
 
     @property
     def description(self) -> str:
+        """
+        Returns the function's docstring, which is used as the tool's description
+        in the function schema sent to the OpenAI API.
+        """
         if self.function.__doc__ is None:
             return ""
         return textwrap.dedent(self.function.__doc__).strip()
 
-    async def execute(self, params: pydantic.BaseModel, context: Context | None) -> str:
+    async def execute(
+        self, params: pydantic.BaseModel, context: _Context | None
+    ) -> str:
+        """
+        Executes the tool with the parsed parameters received from the OpenAI API.
+        If the function is a coroutine, it is awaited.
+        """
         kwargs = {}
         if _CONTEXT_ARG_NAME in signature(self.function).parameters:
             kwargs[_CONTEXT_ARG_NAME] = context
@@ -60,10 +75,16 @@ class _Tool:
         return str(result)
 
     def parse_args(self, args: str) -> pydantic.BaseModel:
+        """
+        Parses the arguments received from the OpenAI API using the Pydantic model.
+        """
         return self.params.parse_raw(args)
 
     @property
     def tool_definition(self) -> dict:
+        """
+        Returns the tool schema that is sent to the OpenAI API.
+        """
         schema = self.params.schema()
         if self.strict:
             schema["additionalProperties"] = False
@@ -96,12 +117,18 @@ class Assistant:
         return self._create_system_message(self._instruction)
 
     def _create_prompt(self, message_history: list[Message]) -> list[Message]:
+        """
+        Creates a prompt by combining the system instruction with the message history.
+        """
         return [
             self._get_system_prompt(),
             *message_history,
         ]
 
     def summary(self) -> str:
+        """
+        Returns a summary of the assistant's tools and their schemas.
+        """
         lines = ["Tools:"]
         for tool in self._tools:
             lines.append(f"  - {tool.name}")
@@ -113,6 +140,10 @@ class Assistant:
         return "\n".join(lines)
 
     def tool(self, strict: bool = False) -> Callable:
+        """
+        Decorator to define a tool function.
+        """
+
         def decorator(function: Callable) -> Callable:
             self._tools.append(
                 _Tool(function=function, strict=strict),
@@ -122,14 +153,25 @@ class Assistant:
         return decorator
 
     def inspect_prompt(self, function: Callable) -> Callable:
+        """
+        Decorator to define a prompt inspector.
+        The prompt inspector is called with the full prompt.
+        """
         self._prompt_inspectors.append(function)
         return function
 
     def inspect_output(self, function: Callable) -> Callable:
+        """
+        Decorator to define an output inspector.
+        The output inspector is called with the full generated message, including tool calls.
+        """
         self._output_inspectors.append(function)
         return function
 
     def on_message(self, function: Callable) -> Callable:
+        """
+        Decorator to define a message callback.
+        """
         params = set(signature(function).parameters.keys())
         if params not in [
             {"message"},
@@ -142,8 +184,11 @@ class Assistant:
         return function
 
     async def _run_prompt_inspectors(
-        self, prompt: list[Message], context: Context | None
+        self, prompt: list[Message], context: _Context | None
     ) -> None:
+        """
+        Runs all prompt inspectors with the full prompt prior to sending it to the OpenAI API.
+        """
         for inspector in self._prompt_inspectors:
             kwargs = {}
             if _CONTEXT_ARG_NAME in signature(inspector).parameters:
@@ -154,8 +199,11 @@ class Assistant:
                 inspector(prompt, **kwargs)
 
     async def _run_output_inspectors(
-        self, content: AssistantMessage, context: Context | None
+        self, content: AssistantMessage, context: _Context | None
     ) -> None:
+        """
+        Runs all output inspectors with the full generated message, including tool calls.
+        """
         for inspector in self._output_inspectors:
             kwargs = {}
             if _CONTEXT_ARG_NAME in signature(inspector).parameters:
@@ -166,10 +214,13 @@ class Assistant:
                 inspector(content, **kwargs)
 
     async def _run_message_inspectors(
-        self, content: str, context: Context | None
+        self, content: str, context: _Context | None
     ) -> None:
+        """
+        Runs all message callbacks with the generated message content.
+        """
         for callback in self._message_callbacks:
-            kwargs: dict[str, str | Context | None] = {
+            kwargs: dict[str, str | _Context | None] = {
                 "message": content,
             }
             if _CONTEXT_ARG_NAME in signature(callback).parameters:
@@ -184,6 +235,9 @@ class Assistant:
     def _parse_completion(
         completion: ChatCompletionMessage,
     ) -> AssistantMessage:
+        """
+        Parses the completion received from the OpenAI API into a Message TypedDict.
+        """
         result = AssistantMessage(
             {
                 "role": completion.role,
@@ -209,6 +263,10 @@ class Assistant:
         return result
 
     def _get_tool_kwargs(self) -> dict[str, Any]:
+        """
+        Returns the tools schema that is sent to the OpenAI API.
+        Built dynamically because the API does not accept empty lists.
+        """
         kwargs: dict[str, Any] = {}
         if tool_definitions := [
             {"type": "function", "function": tool.tool_definition}
@@ -221,6 +279,9 @@ class Assistant:
         self,
         messages: list[Message],
     ) -> ChatCompletion:
+        """
+        Sends the prompt to the OpenAI API and returns the completion.
+        """
         return await self._client.chat.completions.create(
             model=self._model,
             messages=messages,
@@ -256,8 +317,12 @@ class Assistant:
         self,
         message: str,
         history: list[Message] | None = None,
-        _context: Context | None = None,
+        _context: _Context | None = None,
     ) -> tuple[list[str], list[Message]]:
+        """
+        A full interaction loop with the assistant.
+        If tool calls are present in the completion, they are executed, and the loop continues.
+        """
         if not history:
             history = []
         else:
@@ -279,8 +344,11 @@ class Assistant:
     async def _iterate(
         self,
         history: list[Message],
-        context: Context | None,
+        context: _Context | None,
     ) -> AsyncIterator[tuple[str, list[Message]]]:
+        """
+        The main loop that sends the prompt to the OpenAI API and processes the response.
+        """
         prompt = self._create_prompt(history)
         await self._run_prompt_inspectors(prompt, context)
 
