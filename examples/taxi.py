@@ -22,7 +22,7 @@ class Result(BaseModel):
     message: Optional[str] = None
 
 
-@agent.tool()
+@agent.tool
 def book_taxi(
     n_passengers: int,
     pickup_location: str,

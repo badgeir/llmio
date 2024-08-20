@@ -17,13 +17,13 @@ agent = Agent(
 )
 
 
-@agent.tool()
+@agent.tool
 def add(num1: float, num2: float) -> float:
     print(f"** Adding: {num1} + {num2}")
     return num1 + num2
 
 
-@agent.tool()
+@agent.tool
 async def multiply(num1: float, num2: float) -> float:
     print(f"** Multiplying: {num1} * {num2}")
     return num1 * num2
