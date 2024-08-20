@@ -62,19 +62,19 @@ agent = Agent(
 )
 
 
-# Define tools using the `@agent.tool()` decorator.
+# Define tools using the `@agent.tool` decorator.
 # Tools are automatically parsed by their type annotations
 # and added to the agent's capabilities.
 # The code itself is never seen by the LLM, only the function signature is exposed.
 # When the agent invokes a tool, the corresponding function is executed locally.
-@agent.tool()
+@agent.tool
 async def add(num1: float, num2: float) -> float:
     print(f"** Adding: {num1} + {num2}")
     return num1 + num2
 
 
 # Tools can also be synchronous.
-@agent.tool()
+@agent.tool
 def multiply(num1: float, num2: float) -> float:
     print(f"** Multiplying: {num1} * {num2}")
     return num1 * num2
@@ -117,7 +117,7 @@ Under the hood, `llmio` uses type annotations to build function schemas compatib
 It also builds pydantic models in order to validate the input types of the arguments passed by the language model.
 
 ``` python
-@agent.tool()
+@agent.tool
 async def add(num1: float, num2: float) -> float:
     """
     The docstring is used as the description of the tool.
@@ -147,7 +147,7 @@ Tools:
 `pydantic.Field` can be used to describe parameters in detail. These descriptions will be included in the schema and help the language model understand the tool's requirements.
 
 ``` python
-@agent.tool()
+@agent.tool
 async def book_flight(
     destination: str = Field(..., description="The destination airport"),
     origin: str = Field(..., description="The origin airport"),
@@ -164,7 +164,7 @@ async def book_flight(
 Optional parameters are supported.
 
 ``` python
-@agent.tool()
+@agent.tool
 async def create_task(name: str = "My task", description: str | None = None) -> str:
     return "Created task"
 ```
@@ -206,7 +206,7 @@ class User:
     name: str
 
 
-@agent.tool()
+@agent.tool
 async def create_task(task_name: str, _context: User) -> str:
     print(f"** Created task '{task_name}' for user '{_context.name}'")
     return "Created task"

@@ -24,7 +24,7 @@ agent = Agent(
 # The special argument _context will be passed in when detected in the function signature.
 # The _context variable can be used to keep track of context, such as the current user.
 # Note that the _context variable is invisible to the language model.
-@agent.tool()
+@agent.tool
 async def set_reminder(description: str, datetime_iso: datetime, _context: User) -> str:
     print(
         f"** Creating reminder for user {_context.name}: '{description}' at {datetime_iso}"

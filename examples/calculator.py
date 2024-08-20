@@ -21,16 +21,16 @@ agent = Agent(
 )
 
 
-# Define tools using the `@agent.tool()` decorator.
+# Define tools using the `@agent.tool` decorator.
 # Tools are automatically parsed by their type annotations
 # and added to the agent's capabilities.
-@agent.tool()
+@agent.tool
 def add(num1: float, num2: float) -> float:
     print(f"** Adding: {num1} + {num2}")
     return num1 + num2
 
 
-@agent.tool()
+@agent.tool
 async def multiply(num1: float, num2: float) -> float:
     print(f"** Multiplying: {num1} * {num2}")
     return num1 * num2

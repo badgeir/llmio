@@ -155,24 +155,21 @@ class Agent:
             lines.append("")
         return "\n".join(lines)
 
-    def tool(self, strict: bool | Callable = False) -> Callable:
+    def tool(
+        self, tool_function: Callable | None = None, strict: bool = False
+    ) -> Callable:
         """
         Decorator to define a tool function.
         """
-
-        if callable(strict):
-            function = strict
-            return self.tool()(
-                function,
-            )
-
-        assert isinstance(strict, bool), "The 'strict' argument must be a boolean."
 
         def decorator(function: Callable) -> Callable:
             self._tools.append(
                 _Tool(function=function, strict=strict),
             )
             return function
+
+        if tool_function is not None:
+            return decorator(tool_function)
 
         return decorator
 
