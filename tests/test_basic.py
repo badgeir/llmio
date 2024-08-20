@@ -22,7 +22,7 @@ async def test_basics() -> None:
     async def add(num1: float, num2: float) -> float:
         return num1 + num2
 
-    @agent.tool()
+    @agent.tool(strict=True)
     async def multiply(num1: float, num2: float) -> float:
         return num1 * num2
 

@@ -209,7 +209,7 @@ async def main() -> None:
 
 ### Batched execution
 
-Since the Agent class is stateless, asyncio.gather can be safely used to run multiple messages in parallel.
+The Agent class is stateless, allowing you to safely use `asyncio.gather` to execute multiple messages in parallel.
 
 ``` python
 async def main() -> None:
@@ -245,4 +245,36 @@ async def main() -> None:
         messages, history = await agent.speak(input(">>"), history=history)
         for message in messages:
             print(message)
+```
+
+### Handling Uninterpretable Tool Calls
+
+The agent can be set up to either raise an exception or provide feedback to the model when it makes an uninterpretable tool call. By default, the agent will raise an exception if the model attempts to call an unrecognized tool or passes invalid arguments.
+
+``` python
+# This will raise an exception if the model tries to call a tool
+# that the agent does not recognize or if the arguments are not valid.
+agent = Agent(
+    client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
+    model="gpt-4o-mini",
+    graceful_errors=False,  # This is the default
+)
+
+# This will try to explain to the model what it did wrong
+# if it tries to call a tool that the agent does not recognize,
+agent = Agent(
+    client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
+    model="gpt-4o-mini",
+    graceful_errors=True,
+)
+```
+
+### Strict tool mode
+
+OpenAI supports strict mode for tools, ensuring that tools are only called with arguments that adhere to the defined function schema. This can be enabled by setting strict=True in the tool decorator, though this feature may not be available with other providers.
+
+``` python
+@agent.tool(strict=True)
+async def add_task(name: str, description: str | None = None) -> str:
+    ...
 ```
