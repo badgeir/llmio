@@ -277,7 +277,8 @@ agent = Agent(
 )
 
 # This will try to explain to the model what it did wrong
-# if it tries to call a tool that the agent does not recognize,
+# if it tries to call a tool that the agent does not recognize
+# or if the arguments are not valid.
 agent = Agent(
     client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
     model="gpt-4o-mini",
