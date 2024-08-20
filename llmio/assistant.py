@@ -239,24 +239,18 @@ class Assistant:
         Parses the completion received from the OpenAI API into a Message TypedDict.
         """
         result = AssistantMessage(
-            {
-                "role": completion.role,
-                "content": completion.content,
-            }
+            role=completion.role,
+            content=completion.content,
         )
         if completion.tool_calls:
             result["tool_calls"] = [
                 ToolCall(
-                    {
-                        "id": tool_call.id,
-                        "type": tool_call.type,
-                        "function": Function(
-                            {
-                                "name": tool_call.function.name,
-                                "arguments": tool_call.function.arguments,
-                            }
-                        ),
-                    }
+                    id=tool_call.id,
+                    type=tool_call.type,
+                    function=Function(
+                        name=tool_call.function.name,
+                        arguments=tool_call.function.arguments,
+                    ),
                 )
                 for tool_call in completion.tool_calls
             ]
@@ -290,27 +284,21 @@ class Assistant:
 
     def _create_user_message(self, message: str) -> UserMessage:
         return UserMessage(
-            {
-                "role": "user",
-                "content": message,
-            }
+            role="user",
+            content=message,
         )
 
     def _create_tool_message(self, tool_call_id: str, content: str) -> ToolMessage:
         return ToolMessage(
-            {
-                "role": "tool",
-                "content": content,
-                "tool_call_id": tool_call_id,
-            }
+            role="tool",
+            content=content,
+            tool_call_id=tool_call_id,
         )
 
     def _create_system_message(self, message: str) -> SystemMessage:
         return SystemMessage(
-            {
-                "role": "system",
-                "content": message,
-            }
+            role="system",
+            content=message,
         )
 
     async def speak(
