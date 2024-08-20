@@ -219,7 +219,7 @@ async def main() -> None:
     )
 ```
 
-### A simple example of looping
+### A simple example of continuous interaction
 
 ``` python
 @agent.on_message
@@ -235,7 +235,7 @@ async def main() -> None:
 
 ```
 
-### Or by using the messages returned by the agent
+#### Or by using the messages returned by the agent
 
 ``` python
 async def main() -> None:
