@@ -397,16 +397,12 @@ class Agent:
                             ) from e
                         case _:
                             assert_never(e)
-                match e:
-                    case pydantic.ValidationError():
-                        error_message = (
-                            f"The argument validation failed for the function call to {tool.name}: "
-                            + str(e)
-                        )
-                    case ValueError():
-                        error_message = str(e)
-                    case _:
-                        assert_never(e)
+
+                error_message = (
+                    f"The argument validation failed for the function call to {tool.name}: {e}"
+                    if isinstance(e, pydantic.ValidationError)
+                    else str(e)
+                )
 
                 history.append(
                     self._create_tool_message(

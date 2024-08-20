@@ -2,7 +2,7 @@ import asyncio
 import os
 
 import openai
-from llmio.agent import Agent
+from llmio import Agent
 
 
 # Define an agent that can add and multiply numbers using tools.
