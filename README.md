@@ -12,7 +12,7 @@
 
 #### *LLM I/O made easy*
 
-llmio is a lightweight library that leverages type annotations to enable seamless tool execution with OpenAI-compatible APIs, including OpenAI, Azure OpenAI, AWS Bedrock Access Gateway, and Huggingface TGI.
+**llmio** is a lightweight library that leverages type annotations to enable seamless tool execution with OpenAI-compatible APIs, including OpenAI, Azure OpenAI, AWS Bedrock Access Gateway, and Huggingface TGI.
 
 
 # Setup
