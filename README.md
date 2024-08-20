@@ -1,6 +1,6 @@
 
 # llmio
-## LLM I/O - Easily connect large language models into your application
+## LLM I/O - Seamless Tool Integration for LLM-powered Python Applications
 
 ![pylint](https://github.com/badgeir/llmio/actions/workflows/pylint.yml/badge.svg)
 ![mypy](https://github.com/badgeir/llmio/actions/workflows/mypy.yml/badge.svg)
@@ -9,7 +9,7 @@
 [![pypi](https://img.shields.io/pypi/v/llmio.svg)](https://pypi.python.org/pypi/llmio)
 [![versions](https://img.shields.io/pypi/pyversions/llmio.svg)](https://github.com/badgeir/llmio)
 
-llmio is a lightweight library that uses type annotations to enable tool execution with OpenAI-compatible APIs such as OpenAI, Azure OpenAI, AWS Bedrock Access Gateway and Huggingface TGI.
+llmio is a lightweight library that leverages type annotations to enable seamless tool execution with OpenAI-compatible APIs, including OpenAI, Azure OpenAI, AWS Bedrock Access Gateway, and Huggingface TGI.
 
 
 # Setup
