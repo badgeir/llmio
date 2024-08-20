@@ -48,7 +48,8 @@ agent = Agent(
 
 
 # Define tools using the `@agent.tool()` decorator.
-# Tools are automatically parsed by their type annotations and added to the agent's capabilities.
+# Tools are automatically parsed by their type annotations
+# and added to the agent's capabilities.
 # The code itself is never seen by the LLM, only the function signature is exposed.
 # When the agent invokes a tool, the corresponding function is executed locally.
 @agent.tool()
