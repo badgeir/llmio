@@ -1,11 +1,11 @@
 import asyncio
 import pprint
 from typing import Callable, Type, Any, AsyncIterator, TypeVar
-from typing_extensions import assert_never
 from dataclasses import dataclass
 import textwrap
 from inspect import signature, iscoroutinefunction
 
+from typing_extensions import assert_never
 import pydantic
 import openai
 from openai.types.chat import (
