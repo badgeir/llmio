@@ -96,7 +96,7 @@ class _Tool:
         }
 
 
-class Assistant:
+class Agent:
     def __init__(
         self,
         instruction: str,
@@ -127,7 +127,7 @@ class Assistant:
 
     def summary(self) -> str:
         """
-        Returns a summary of the assistant's tools and their schemas.
+        Returns a summary of the agent's tools and their schemas.
         """
         lines = ["Tools:"]
         for tool in self._tools:
@@ -308,7 +308,7 @@ class Assistant:
         _context: _Context | None = None,
     ) -> tuple[list[str], list[Message]]:
         """
-        A full interaction loop with the assistant.
+        A full interaction loop with the agent.
         If tool calls are present in the completion, they are executed, and the loop continues.
         """
         if not history:

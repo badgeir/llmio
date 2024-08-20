@@ -1,12 +1,12 @@
 import asyncio
 
 import openai
-from llmio.assistant import Assistant
+from llmio.agent import Agent
 
 
-assistant = Assistant(
+agent = Agent(
     instruction="""
-        You are a calculating assistant running in Azure.
+        You are a calculating agent running in Azure.
         """,
     client=openai.AsyncAzureOpenAI(
         api_key="<your-api-key",
@@ -17,26 +17,26 @@ assistant = Assistant(
 )
 
 
-@assistant.tool()
+@agent.tool()
 def add(num1: float, num2: float) -> float:
     print(f"** Adding: {num1} + {num2}")
     return num1 + num2
 
 
-@assistant.tool()
+@agent.tool()
 async def multiply(num1: float, num2: float) -> float:
     print(f"** Multiplying: {num1} * {num2}")
     return num1 * num2
 
 
-@assistant.on_message
+@agent.on_message
 async def print_message(message: str):
     print(f"** Posting message: '{message}'")
 
 
 async def main():
-    history = await assistant.speak("Hi! how much is 1 + 1?")
-    history = await assistant.speak("and how much is that times two?", history=history)
+    history = await agent.speak("Hi! how much is 1 + 1?")
+    history = await agent.speak("and how much is that times two?", history=history)
 
 
 if __name__ == "__main__":

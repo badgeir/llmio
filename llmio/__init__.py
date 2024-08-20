@@ -1,5 +1,5 @@
-from .assistant import (
-    Assistant,
+from .agent import (
+    Agent,
     Message,
     UserMessage,
     AssistantMessage,
@@ -9,7 +9,7 @@ from .assistant import (
 
 
 __all__ = [
-    "Assistant",
+    "Agent",
     "Message",
     "UserMessage",
     "AssistantMessage",

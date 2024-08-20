@@ -4,7 +4,7 @@ from datetime import datetime
 
 import openai
 
-from llmio import Assistant
+from llmio import Agent
 
 from tests.utils import mocked_async_openai_replies
 from openai.types.chat.chat_completion_message import (
@@ -15,8 +15,8 @@ from openai.types.chat.chat_completion_message_tool_call import Function
 
 
 async def test_context() -> None:
-    assistant = Assistant(
-        instruction=f"You are a personal assistant. You can help users set reminders. The current time is {datetime.now()}",
+    agent = Agent(
+        instruction=f"You are a personal agent. You can help users set reminders. The current time is {datetime.now()}",
         client=openai.AsyncOpenAI(api_key="abc"),
         model="gpt-4o-mini",
     )
@@ -26,7 +26,7 @@ async def test_context() -> None:
         id: str
         name: str
 
-    @assistant.tool()
+    @agent.tool()
     async def set_reminder(
         description: str, datetime_iso: datetime, _context: User
     ) -> str:
@@ -60,18 +60,18 @@ async def test_context() -> None:
 
     user = User(id="1", name="Alice")
     with mocked_async_openai_replies(mocks):
-        answers, history = await assistant.speak("Set a reminder for me", _context=user)
+        answers, history = await agent.speak("Set a reminder for me", _context=user)
     assert answers == [mocks[0].content, mocks[1].content]
     assert history == [
         {
             "role": "user",
             "content": "Set a reminder for me",
         },
-        assistant._parse_completion(mocks[0]),
+        agent._parse_completion(mocks[0]),
         {
             "role": "tool",
             "tool_call_id": "set_reminder_1",
             "content": "Successfully created reminder for user 1: A reminder at 2022-01-01 00:00:00",
         },
-        assistant._parse_completion(mocks[1]),
+        agent._parse_completion(mocks[1]),
     ]
