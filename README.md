@@ -14,14 +14,29 @@
 
 **llmio** is a lightweight library that leverages type annotations to enable seamless tool execution with OpenAI-compatible APIs, including OpenAI, Azure OpenAI, AWS Bedrock Access Gateway, and Huggingface TGI.
 
+## Overview
 
-# Setup
+1. [Setup](#setup)
+2. [Examples](#examples)
+3. [Details](#details)
+    - [Tools](#tools)
+    - [Parameter descriptions](#parameter-descriptions)
+    - [Optional parameters](#optional-parameters)
+    - [Supported parameter types](#supported-parameter-types)
+    - [Hooks](#hooks)
+4. [Keeping track of context](#keeping-track-of-context)
+5. [Batched execution](#batched-execution)
+6. [A simple example of continuous interaction](#a-simple-example-of-continuous-interaction)
+7. [Handling Uninterpretable Tool Calls](#handling-uninterpretable-tool-calls)
+8. [Strict tool mode](#strict-tool-mode)
+
+## Setup
 
 ```
 pip install llmio
 ```
 
-# Examples
+## Examples
 
 ``` python
 import asyncio
@@ -93,7 +108,9 @@ if __name__ == "__main__":
 For more examples, see `examples/`.
 
 
-# Details
+## Details
+
+### Tools
 
 Under the hood, `llmio` uses type annotations to build function schemas compatible with OpenAI tools.
 
@@ -125,7 +142,7 @@ Tools:
        'strict': False}
 ```
 
-#### Parameter descriptions
+### Parameter descriptions
 
 `pydantic.Field` can be used to describe parameters in detail. These descriptions will be included in the schema and help the language model understand the tool's requirements.
 
@@ -179,9 +196,9 @@ async def inspect_output(output: llmio.Message):
     pprint(output)
 ``` 
 
-### Pass a context to keep track of context in tools and hooks
+## Keeping track of context
 
-Pass an object of any type to the agent to keep track of context. This context will only be passed to tools and other hooks that include the special argument `_context`, not to the model itself.
+You can pass an object of any type to the agent to maintain context. This context will be available to tools and other hooks that include the special argument `_context`, but it will not be passed to the model itself.
 
 ``` python
 @dataclass
@@ -191,13 +208,12 @@ class User:
 
 @agent.tool()
 async def create_task(task_name: str, _context: User) -> str:
-    print(f"** Created task {task_name} for user '{_context.name}'")
+    print(f"** Created task '{task_name}' for user '{_context.name}'")
     return "Created task"
 
-
 @agent.on_message
-async def (message: str, _context: User) -> None:
-    print(f"** Sending message to user {_context.name}: {message}")
+async def on_message(message: str, _context: User) -> None:
+    print(f"** Sending message to user '{_context.name}': {message}")
 
 
 async def main() -> None:
@@ -207,7 +223,7 @@ async def main() -> None:
     )
 ```
 
-### Batched execution
+## Batched execution
 
 The Agent class is stateless, allowing you to safely use `asyncio.gather` to execute multiple messages in parallel.
 
@@ -219,7 +235,7 @@ async def main() -> None:
     )
 ```
 
-### A simple example of continuous interaction
+## A simple example of continuous interaction
 
 ``` python
 @agent.on_message
@@ -247,7 +263,7 @@ async def main() -> None:
             print(message)
 ```
 
-### Handling Uninterpretable Tool Calls
+## Handling Uninterpretable Tool Calls
 
 The agent can be set up to either raise an exception or provide feedback to the model when it makes an uninterpretable tool call. By default, the agent will raise an exception if the model attempts to call an unrecognized tool or passes invalid arguments.
 
@@ -269,7 +285,7 @@ agent = Agent(
 )
 ```
 
-### Strict tool mode
+## Strict tool mode
 
 OpenAI supports strict mode for tools, ensuring that tools are only called with arguments that adhere to the defined function schema. This can be enabled by setting strict=True in the tool decorator, though this feature may not be available with other providers.
 
