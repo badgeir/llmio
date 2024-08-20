@@ -24,11 +24,11 @@
     - [Optional parameters](#optional-parameters)
     - [Supported parameter types](#supported-parameter-types)
     - [Hooks](#hooks)
-4. [Keeping track of context](#keeping-track-of-context)
-5. [Batched execution](#batched-execution)
-6. [A simple example of continuous interaction](#a-simple-example-of-continuous-interaction)
-7. [Handling Uninterpretable Tool Calls](#handling-uninterpretable-tool-calls)
-8. [Strict tool mode](#strict-tool-mode)
+    - [Keeping track of context](#keeping-track-of-context)
+    - [Batched execution](#batched-execution)
+    - [A simple example of continuous interaction](#a-simple-example-of-continuous-interaction)
+    - [Handling Uninterpretable Tool Calls](#handling-uninterpretable-tool-calls)
+    - [Strict tool mode](#strict-tool-mode)
 
 ## Setup
 
@@ -196,7 +196,7 @@ async def inspect_output(output: llmio.Message):
     pprint(output)
 ``` 
 
-## Keeping track of context
+### Keeping track of context
 
 You can pass an object of any type to the agent to maintain context. This context will be available to tools and other hooks that include the special argument `_context`, but it will not be passed to the model itself.
 
@@ -223,7 +223,7 @@ async def main() -> None:
     )
 ```
 
-## Batched execution
+### Batched execution
 
 The Agent class is stateless, allowing you to safely use `asyncio.gather` to execute multiple messages in parallel.
 
@@ -235,7 +235,7 @@ async def main() -> None:
     )
 ```
 
-## A simple example of continuous interaction
+### A simple example of continuous interaction
 
 ``` python
 @agent.on_message
@@ -263,7 +263,7 @@ async def main() -> None:
             print(message)
 ```
 
-## Handling Uninterpretable Tool Calls
+### Handling Uninterpretable Tool Calls
 
 The agent can be set up to either raise an exception or provide feedback to the model when it makes an uninterpretable tool call. By default, the agent will raise an exception if the model attempts to call an unrecognized tool or passes invalid arguments.
 
@@ -285,7 +285,7 @@ agent = Agent(
 )
 ```
 
-## Strict tool mode
+### Strict tool mode
 
 OpenAI supports strict mode for tools, ensuring that tools are only called with arguments that adhere to the defined function schema. This can be enabled by setting strict=True in the tool decorator, though this feature may not be available with other providers.
 
