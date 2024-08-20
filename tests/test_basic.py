@@ -88,7 +88,7 @@ async def test_parallel_tool_calls() -> None:
         client=openai.AsyncOpenAI(api_key="abc"),
     )
 
-    @agent.tool()
+    @agent.tool
     async def add(num1: float, num2: float) -> float:
         return num1 + num2
 
