@@ -1,6 +1,7 @@
 import asyncio
 import pprint
 from typing import Callable, Type, Any, AsyncIterator, TypeVar
+from typing_extensions import assert_never
 from dataclasses import dataclass
 import textwrap
 from inspect import signature, iscoroutinefunction
@@ -269,6 +270,12 @@ class Assistant:
             new_messages.append(message)
         return new_messages, history
 
+    def _get_tool_by_name(self, name: str) -> _Tool:
+        for tool in self._tools:
+            if tool.name == name:
+                return tool
+        raise ValueError(f"No tool with the name '{name}' found.")
+
     async def _iterate(
         self,
         history: list[Message],
@@ -296,17 +303,21 @@ class Assistant:
         awaitables = []
         awaited_tool_calls = []
         for tool_call in generated_message.tool_calls:
-            tool = [cmd for cmd in self._tools if cmd.name == tool_call.function.name][
-                0
-            ]
-
             try:
+                tool = self._get_tool_by_name(tool_call.function.name)
                 params = tool.parse_args(tool_call.function.arguments)
-            except pydantic.ValidationError as e:
-                error_message = (
-                    f"The argument validation failed for the function call to {tool.name}: "
-                    + str(e)
-                )
+            except (ValueError, pydantic.ValidationError) as e:
+                match e:
+                    case pydantic.ValidationError():
+                        error_message = (
+                            f"The argument validation failed for the function call to {tool.name}: "
+                            + str(e)
+                        )
+                    case ValueError():
+                        error_message = str(e)
+                    case _:
+                        assert_never(e)
+
                 history.append(
                     self._create_tool_message(
                         tool_call_id=tool_call.id,
