@@ -1,13 +1,18 @@
 import asyncio
 import os
 
+from pydantic import BaseModel
 import openai
-from llmio import Agent
+from llmio import StructuredAgent
+
+
+class ResponseFormat(BaseModel):
+    message: str
 
 
 # Define an agent that can add and multiply numbers using tools.
 # The agent will also print any messages it receives.
-agent = Agent(
+agent = StructuredAgent(
     # Define the agent's instructions.
     instruction="""
         You are a calculating agent.
@@ -18,6 +23,7 @@ agent = Agent(
     # Any API that implements the OpenAI interface can be used.
     client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
     model="gpt-4o-mini",
+    response_format=ResponseFormat,
 )
 
 
@@ -43,7 +49,7 @@ async def print_message(message: str):
     print(f"** Posting message: '{message}'")
 
 
-async def main():
+async def main() -> None:
     # pylint: disable=unused-variable
 
     # Run the agent with a message.
@@ -55,6 +61,8 @@ async def main():
     messages, history = await agent.speak(
         "and how much is that times two?", history=history
     )
+    for message in messages:
+        print(message.message)
 
 
 if __name__ == "__main__":
