@@ -26,13 +26,13 @@ agent = Agent(
 # and added to the agent's capabilities.
 @agent.tool
 def add(num1: float, num2: float) -> float:
-    print(f"** Adding: {num1} + {num2}")
+    print(f"** Executing add({num1}, {num2}) -> {num1 + num2}")
     return num1 + num2
 
 
 @agent.tool
 async def multiply(num1: float, num2: float) -> float:
-    print(f"** Multiplying: {num1} * {num2}")
+    print(f"** Executing multiply({num1}, {num2}) -> {num1 * num2}")
     return num1 * num2
 
 

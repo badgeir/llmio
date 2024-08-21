@@ -67,14 +67,14 @@ agent = Agent(
 # When the agent invokes a tool, the corresponding function is executed locally.
 @agent.tool
 async def add(num1: float, num2: float) -> float:
-    print(f"** Adding: {num1} + {num2}")
+    print(f"** Executing add({num1}, {num2}) -> {num1 + num2}")
     return num1 + num2
 
 
 # Tools can also be synchronous.
 @agent.tool
 def multiply(num1: float, num2: float) -> float:
-    print(f"** Multiplying: {num1} * {num2}")
+    print(f"** Executing multiply({num1}, {num2}) -> {num1 * num2}")
     return num1 * num2
 
 
@@ -99,6 +99,12 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+# Output:
+# ** Executing add(1.0, 1.0) -> 2.0
+# ** Posting message: '1 + 1 is 2.'
+# ** Executing multiply(2.0, 2.0) -> 4.0
+# ** Posting message: 'That times two is 4.'
 ```
 
 ### More examples
