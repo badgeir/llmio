@@ -323,7 +323,7 @@ class OutputFormat(pydantic.BaseModel):
 
 
 agent = StructuredAgent(
-    instruction="instruction",
+    instruction="Answer the questions and detect the user sentiment.",
     client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
     model="gpt-4o-mini",
     response_format=OutputFormat,
