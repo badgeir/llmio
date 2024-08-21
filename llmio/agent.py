@@ -1,6 +1,6 @@
 import asyncio
 import pprint
-from typing import Callable, Type, Any, AsyncIterator, TypeVar
+from typing import Callable, Generic, Type, Any, AsyncIterator, TypeVar
 from dataclasses import dataclass
 import textwrap
 from inspect import signature, iscoroutinefunction
@@ -96,7 +96,10 @@ class _Tool:
         }
 
 
-class Agent:
+_ResponseFormatT = TypeVar("_ResponseFormatT", bound=pydantic.BaseModel)
+
+
+class BaseAgent:
     def __init__(
         self,
         instruction: str,
@@ -234,6 +237,12 @@ class Agent:
             else:
                 inspector(content, **kwargs)
 
+    def _parse_message_inspector_content(self, message: str) -> Any:
+        """
+        Parses the message content for the message inspectors.
+        """
+        return message
+
     async def _run_message_inspectors(
         self, content: str, context: _Context | None
     ) -> None:
@@ -242,7 +251,7 @@ class Agent:
         """
         for callback in self._message_callbacks:
             kwargs: dict[str, str | _Context | None] = {
-                "message": content,
+                "message": self._parse_message_inspector_content(content),
             }
             if _CONTEXT_ARG_NAME in signature(callback).parameters:
                 kwargs[_CONTEXT_ARG_NAME] = context
@@ -277,12 +286,13 @@ class Agent:
             ]
         return result
 
-    def _get_tool_kwargs(self) -> dict[str, Any]:
+    def _get_model_request_kwargs(self) -> dict[str, Any]:
         """
         Returns the tools schema that is sent to the OpenAI API.
         Built dynamically because the API does not accept empty lists.
         """
         kwargs: dict[str, Any] = {}
+
         if tool_definitions := [
             {"type": "function", "function": tool.tool_definition}
             for tool in self._tools
@@ -300,7 +310,7 @@ class Agent:
         return await self._client.chat.completions.create(
             model=self._model,
             messages=messages,
-            **self._get_tool_kwargs(),
+            **self._get_model_request_kwargs(),
         )
 
     def _create_user_message(self, message: str) -> UserMessage:
@@ -327,7 +337,7 @@ class Agent:
         message: str,
         history: list[Message] | None = None,
         _context: _Context | None = None,
-    ) -> tuple[list[str], list[Message]]:
+    ) -> tuple[list[Any], list[Message]]:
         """
         A full interaction loop with the agent.
         If tool calls are present in the completion, they are executed, and the loop continues.
@@ -429,3 +439,67 @@ class Agent:
             context=context,
         ):
             yield ans, hist
+
+
+class Agent(BaseAgent):
+    async def speak(
+        self,
+        message: str,
+        history: list[Message] | None = None,
+        _context: _Context | None = None,
+    ) -> tuple[list[str], list[Message]]:
+        messages: list[str]
+        messages, history = await super().speak(
+            message, history=history, _context=_context
+        )
+        return messages, history
+
+
+class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):
+    def __init__(
+        self,
+        instruction: str,
+        client: openai.AsyncOpenAI,
+        response_format: Type[_ResponseFormatT],
+        model: str = "gpt-4o-mini",
+        graceful_errors: bool = False,
+    ):
+        super().__init__(
+            instruction=instruction,
+            client=client,
+            model=model,
+            graceful_errors=graceful_errors,
+        )
+        self._response_format = response_format
+
+    async def speak(
+        self,
+        message: str,
+        history: list[Message] | None = None,
+        _context: _Context | None = None,
+    ) -> tuple[list[_ResponseFormatT], list[Message]]:
+        assert self._response_format is not None
+        messages, history = await super().speak(
+            message, history=history, _context=_context
+        )
+        parsed_messages = [
+            self._response_format.parse_raw(message) for message in messages
+        ]
+        return parsed_messages, history
+
+    def _get_model_request_kwargs(self) -> dict[str, Any]:
+        kwargs = super()._get_model_request_kwargs()
+        schema = self._response_format.schema()
+        schema["additionalProperties"] = False
+        kwargs["response_format"] = {
+            "type": "json_schema",
+            "json_schema": {
+                "schema": schema,
+                "name": self._response_format.__name__,
+                "strict": True,
+            },
+        }
+        return kwargs
+
+    def _parse_message_inspector_content(self, message: str) -> _ResponseFormatT:
+        return self._response_format.parse_raw(message)

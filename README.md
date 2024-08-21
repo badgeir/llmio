@@ -29,6 +29,7 @@
     - [A simple example of continuous interaction](#a-simple-example-of-continuous-interaction)
     - [Handling Uninterpretable Tool Calls](#handling-uninterpretable-tool-calls)
     - [Strict tool mode](#strict-tool-mode)
+    - [Structured output](#structured-output)
 
 ## Setup
 
@@ -294,4 +295,52 @@ OpenAI supports strict mode for tools, ensuring that tools are only called with 
 @agent.tool(strict=True)
 async def add_task(name: str, description: str | None = None) -> str:
     ...
+```
+
+### Structured output
+
+The agent can be set up to return structured output on the messages it generates. This can be useful for more advanced use cases. Note that this feature might not be available with all providers (as of now, only OpenAI and Azure OpenAI support it).
+
+``` python
+import asyncio
+from pprint import pprint
+from typing import Literal
+
+import pydantic
+import os
+import openai
+
+from llmio import StructuredAgent
+
+
+class OutputFormat(pydantic.BaseModel):
+    answer: str
+    detected_sentiment: Literal["positive", "negative", "neutral"]
+
+
+agent = StructuredAgent(
+    instruction="instruction",
+    client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
+    model="gpt-4o-mini",
+    response_format=OutputFormat,
+)
+
+
+@agent.on_message
+async def print_message(message: OutputFormat):
+    print(type(message))
+    pprint(message.dict())
+
+
+async def main() -> None:
+    _ = await agent.speak("I am happy!")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+# Output:
+# <class '__main__.OutputFormat'>
+# {'answer': "That's great to hear! Happiness is a wonderful feeling.",
+#  'detected_sentiment': 'positive'}
 ```

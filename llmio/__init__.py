@@ -1,5 +1,6 @@
 from .agent import (
     Agent,
+    StructuredAgent,
     Message,
     UserMessage,
     AssistantMessage,
@@ -12,6 +13,7 @@ from .errors import BadToolCall
 
 __all__ = [
     "Agent",
+    "StructuredAgent",
     "Message",
     "UserMessage",
     "AssistantMessage",
