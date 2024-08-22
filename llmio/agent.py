@@ -29,6 +29,12 @@ _CONTEXT_ARG_NAME = "_context"
 
 
 @dataclass
+class AgentResponse:
+    messages: list[str]
+    history: list[Message]
+
+
+@dataclass
 class _Tool:
     function: Callable
     strict: bool = False
@@ -97,6 +103,15 @@ class _Tool:
 
 
 _ResponseFormatT = TypeVar("_ResponseFormatT", bound=pydantic.BaseModel)
+
+
+class StructuredAgentResponse(Generic[_ResponseFormatT]):
+    messages: list[_ResponseFormatT]
+    history: list[Message]
+
+    def __init__(self, messages: list[_ResponseFormatT], history: list[Message]):
+        self.messages = messages
+        self.history = history
 
 
 class BaseAgent:
@@ -332,12 +347,12 @@ class BaseAgent:
             content=message,
         )
 
-    async def speak(
+    async def _speak(
         self,
         message: str,
         history: list[Message] | None = None,
         _context: _Context | None = None,
-    ) -> tuple[list[Any], list[Message]]:
+    ) -> AgentResponse:
         """
         A full interaction loop with the agent.
         If tool calls are present in the completion, they are executed, and the loop continues.
@@ -352,7 +367,7 @@ class BaseAgent:
 
         async for message, history in self._iterate(history=history, context=_context):
             new_messages.append(message)
-        return new_messages, history
+        return AgentResponse(messages=new_messages, history=history)
 
     def _get_tool_by_name(self, name: str) -> _Tool:
         for tool in self._tools:
@@ -447,12 +462,8 @@ class Agent(BaseAgent):
         message: str,
         history: list[Message] | None = None,
         _context: _Context | None = None,
-    ) -> tuple[list[str], list[Message]]:
-        messages: list[str]
-        messages, history = await super().speak(
-            message, history=history, _context=_context
-        )
-        return messages, history
+    ) -> AgentResponse:
+        return await self._speak(message, history=history, _context=_context)
 
 
 class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):
@@ -477,15 +488,16 @@ class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):
         message: str,
         history: list[Message] | None = None,
         _context: _Context | None = None,
-    ) -> tuple[list[_ResponseFormatT], list[Message]]:
+    ) -> StructuredAgentResponse[_ResponseFormatT]:
         assert self._response_format is not None
-        messages, history = await super().speak(
-            message, history=history, _context=_context
-        )
+        response = await self._speak(message, history=history, _context=_context)
         parsed_messages = [
-            self._response_format.parse_raw(message) for message in messages
+            self._response_format.parse_raw(message) for message in response.messages
         ]
-        return parsed_messages, history
+        return StructuredAgentResponse(
+            messages=parsed_messages,
+            history=response.history,
+        )
 
     def _get_model_request_kwargs(self) -> dict[str, Any]:
         kwargs = super()._get_model_request_kwargs()

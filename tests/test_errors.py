@@ -55,11 +55,11 @@ async def test_graceful_handling() -> None:
         ),
     ]
     with mocked_async_openai_replies(mocks):
-        answers, history = await agent.speak("What is (10 + 20) / 2?")
+        response = await agent.speak("What is (10 + 20) / 2?")
 
-    assert answers == ["Something went wrong"]
+    assert response.messages == ["Something went wrong"]
 
-    assert history == [
+    assert response.history == [
         {
             "role": "user",
             "content": "What is (10 + 20) / 2?",

@@ -60,9 +60,9 @@ async def test_context() -> None:
 
     user = User(id="1", name="Alice")
     with mocked_async_openai_replies(mocks):
-        answers, history = await agent.speak("Set a reminder for me", _context=user)
-    assert answers == [mocks[0].content, mocks[1].content]
-    assert history == [
+        response = await agent.speak("Set a reminder for me", _context=user)
+    assert response.messages == [mocks[0].content, mocks[1].content]
+    assert response.history == [
         {
             "role": "user",
             "content": "Set a reminder for me",

@@ -35,8 +35,10 @@ async def print_message(message: str):
 
 
 async def main():
-    history = await agent.speak("Hi! how much is 1 + 1?")
-    history = await agent.speak("and how much is that times two?", history=history)
+    response = await agent.speak("Hi! how much is 1 + 1?")
+    response = await agent.speak(
+        "and how much is that times two?", history=response.history
+    )
 
 
 if __name__ == "__main__":

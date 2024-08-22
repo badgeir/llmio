@@ -78,11 +78,11 @@ def remove_task(task_id: int):
 
 async def main() -> None:
     history: list[llmio.Message] = []
-
     while True:
-        agent_messages, history = await agent.speak(input(">>> "), history=history)
+        response = await agent.speak(input(">>> "), history=history)
+        history = response.history
 
-        for message in agent_messages:
+        for message in response.messages:
             print(f"** Bot: {message}")
 
 
