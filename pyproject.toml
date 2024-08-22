@@ -45,3 +45,6 @@ disable = [
 
 [tool.ruff]
 line-length = 120
+
+[tool.black]
+extend-exclude = "examples/notebooks"
