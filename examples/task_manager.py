@@ -21,7 +21,7 @@ class Task(BaseModel):
     status: Literal["todo", "doing", "done"] = "todo"
 
 
-TASKS: list[BaseModel] = []
+TASKS: list[Task] = []
 
 
 # Define an agent
@@ -40,7 +40,9 @@ def list_tasks():
 
 # Define a tool to add a task
 @agent.tool
-def add_task(name: str, description: str, status: Literal["todo", "doing", "done"] = "todo"):
+def add_task(
+    name: str, description: str, status: Literal["todo", "doing", "done"] = "todo"
+):
     print(f"** Adding task '{name}' with status '{status}'")
     task_id = len(TASKS) + 1
     TASKS.append(Task(id=task_id, name=name, description=description, status=status))
@@ -49,7 +51,11 @@ def add_task(name: str, description: str, status: Literal["todo", "doing", "done
 
 # Define a tool to update a task
 @agent.tool
-def update_task(task_id: int, status: Literal["todo", "doing", "done"] | None = None, description: str | None = None):
+def update_task(
+    task_id: int,
+    status: Literal["todo", "doing", "done"] | None = None,
+    description: str | None = None,
+):
     print(f"** Updating task {task_id}")
     for task in TASKS:
         if task.id == task_id:
@@ -63,7 +69,7 @@ def update_task(task_id: int, status: Literal["todo", "doing", "done"] | None = 
 @agent.tool
 def remove_task(task_id: int):
     print(f"** Removing task {task_id}")
-    for task in TASKS:
+    for task in TASKS[:]:
         if task.id == task_id:
             TASKS.remove(task)
             return f"OK - removed task {task_id}"
@@ -71,7 +77,7 @@ def remove_task(task_id: int):
 
 
 async def main() -> None:
-    history = []
+    history: list[llmio.Message] = []
 
     while True:
         agent_messages, history = await agent.speak(input(">>> "), history=history)
