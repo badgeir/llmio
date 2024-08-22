@@ -88,13 +88,12 @@ async def print_message(message: str):
 
 async def main():
     # Run the agent with a message.
-    # An empty history might also be passed in.
-    # The agent will return the messages it generated and the updated history.
-    messages, history = await agent.speak("Hi! how much is 1 + 1?")
-    # The agent is stateless and does not remember previous messages.
+    # The agent will return a response containing the messages it generated and the updated history.
+    response = await agent.speak("Hi! how much is 1 + 1?")
+    # The agent is stateless and does not remember previous messages by itself.
     # The history must be passed in to maintain context.
-    messages, history = await agent.speak(
-        "and how much is that times two?", history=history
+    response = await agent.speak(
+        "and how much is that times two?", history=response.history
     )
 
 
@@ -250,9 +249,9 @@ async def print_message(message: str):
 
 async def main() -> None:
     history = []
-    
     while True:
-        _, history = await agent.speak(input(">>"), history=history)
+        response = await agent.speak(input(">>"), history=history)
+        history = response.history
 
 ```
 
@@ -263,8 +262,9 @@ async def main() -> None:
     history = []
     
     while True:
-        messages, history = await agent.speak(input(">>"), history=history)
-        for message in messages:
+        response = await agent.speak(input(">>"), history=history)
+        history = response.history
+        for message in response.messages:
             print(message)
 ```
 

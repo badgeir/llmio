@@ -59,9 +59,9 @@ async def test_basics() -> None:
         ),
     ]
     with mocked_async_openai_replies(mocks):
-        answers, history = await agent.speak("What is (10 + 20) * 2?")
-    assert answers == [mocks[0].content, mocks[2].content]
-    assert history == [
+        response = await agent.speak("What is (10 + 20) * 2?")
+    assert response.messages == [mocks[0].content, mocks[2].content]
+    assert response.history == [
         {
             "role": "user",
             "content": "What is (10 + 20) * 2?",
@@ -123,9 +123,9 @@ async def test_parallel_tool_calls() -> None:
         ),
     ]
     with mocked_async_openai_replies(mocks):
-        answers, history = await agent.speak("What is (10 + 20) and (3 * 9)?")
-    assert answers == [mocks[0].content, mocks[1].content]
-    assert history == [
+        response = await agent.speak("What is (10 + 20) and (3 * 9)?")
+    assert response.messages == [mocks[0].content, mocks[1].content]
+    assert response.history == [
         {
             "role": "user",
             "content": "What is (10 + 20) and (3 * 9)?",

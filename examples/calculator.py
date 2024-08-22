@@ -54,14 +54,14 @@ async def main() -> None:
 
     # Run the agent with a message.
     # An empty history might also be passed in.
-    # The agent will return the messages it generated and the updated history.
-    messages, history = await agent.speak("Hi! how much is 1 + 1?")
+    # The agent will return a response with messages it generated and the updated history.
+    response = await agent.speak("Hi! how much is 1 + 1?")
     # The agent is stateless and does not remember previous messages.
     # The history must be passed in to maintain context.
-    messages, history = await agent.speak(
-        "and how much is that times two?", history=history
+    response = await agent.speak(
+        "and how much is that times two?", history=response.history
     )
-    for message in messages:
+    for message in response.messages:
         print(message.message)
 
 

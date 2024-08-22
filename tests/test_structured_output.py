@@ -131,8 +131,8 @@ async def test_gather_structured_output_with_tools() -> None:
             ]
         )
 
-    for i, (messages, history) in enumerate(results):
-        assert history == [
+    for i, response in enumerate(results):
+        assert response.history == [
             UserMessage(role="user", content=f"{i} + {i} and {i} * {i}?"),
             AssistantMessage(
                 role="assistant",
@@ -181,7 +181,7 @@ async def test_gather_structured_output_with_tools() -> None:
                 ),
             ),
         ]
-        assert messages == [
+        assert response.messages == [
             OutputFormat(message=f"Calculating {i} + {i} and {i} * {i}...", i=i),
             OutputFormat(message=f"Answer: {i + i} and {i * i}", i=i),
         ]

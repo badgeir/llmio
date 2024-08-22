@@ -39,12 +39,12 @@ async def test_gather_basic() -> None:
     ):
         results = await asyncio.gather(*[agent.speak(f"Q{i}") for i in range(100)])
 
-    for i, (messages, history) in enumerate(results):
-        assert history == [
+    for i, response in enumerate(results):
+        assert response.history == [
             UserMessage(role="user", content=f"Q{i}"),
             AssistantMessage(role="assistant", content=f"A{i}"),
         ]
-        assert messages == [f"A{i}"]
+        assert response.messages == [f"A{i}"]
 
     assert sorted(on_message_called_with) == sorted([f"A{i}" for i in range(100)])
 
@@ -146,8 +146,8 @@ async def test_gather_tools() -> None:
             ]
         )
 
-    for i, (messages, history) in enumerate(results):
-        assert history == [
+    for i, response in enumerate(results):
+        assert response.history == [
             UserMessage(role="user", content=f"{i} + {i} and {i} * {i}?"),
             AssistantMessage(
                 role="assistant",
@@ -183,7 +183,7 @@ async def test_gather_tools() -> None:
             ),
             AssistantMessage(role="assistant", content=f"Answer: {i + i} and {i * i}"),
         ]
-        assert messages == [
+        assert response.messages == [
             f"Calculating {i} + {i} and {i} * {i}...",
             f"Answer: {i + i} and {i * i}",
         ]
