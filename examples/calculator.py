@@ -3,17 +3,12 @@ import os
 
 from pydantic import BaseModel
 import openai
-from llmio import StructuredAgent
-
-
-class ResponseFormat(BaseModel):
-    message: str
-    final_answer: float
+from llmio import Agent
 
 
 # Define an agent that can add and multiply numbers using tools.
 # The agent will also print any messages it receives.
-agent = StructuredAgent(
+agent = Agent(
     # Define the agent's instructions.
     instruction="""
         You are a calculating agent.
@@ -24,7 +19,6 @@ agent = StructuredAgent(
     # Any API that implements the OpenAI interface can be used.
     client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
     model="gpt-4o-mini",
-    response_format=ResponseFormat,
 )
 
 
