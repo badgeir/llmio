@@ -1,7 +1,6 @@
 import asyncio
 import os
 
-from pydantic import BaseModel
 import openai
 from llmio import Agent
 
