@@ -9,8 +9,3 @@ check:
 
 check-pylint:
 	pylint llmio examples
-
-
-requirements:
-	poetry export > requirements.txt
-	poetry export --only dev > requirements-dev.txt
