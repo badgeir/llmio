@@ -12,4 +12,4 @@ jobs:
         python-version: '3.10'
     - run: python3 -m pip install poetry
     - run: poetry install --with dev
-    - run: python -m black . --check
+    - run: poetry run python -m black . --check
