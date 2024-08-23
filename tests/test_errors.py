@@ -138,3 +138,24 @@ async def test_bad_tool_call_name_exception() -> None:
     with mocked_async_openai_replies(mocks):
         with pytest.raises(errors.BadToolCall):
             await agent.speak("What is (10 + 20) / 2?")
+
+
+async def test_missing_variable() -> None:
+    agent = Agent(
+        instruction="{var1} {var2} {missing_var}",
+        client=openai.AsyncOpenAI(api_key="abc"),
+        graceful_errors=False,
+    )
+
+    @agent.variable
+    async def var1() -> str:
+        return "var1"
+
+    @agent.variable
+    def var2() -> str:
+        return "var2"
+
+    with pytest.raises(
+        errors.MissingVariable, match="Variable 'missing_var' is not defined."
+    ):
+        await agent.speak("Hello")

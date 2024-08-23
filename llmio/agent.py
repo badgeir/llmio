@@ -139,7 +139,7 @@ class BaseAgent:
         """
         self._model = model
         self._client = client
-        self._instruction = textwrap.dedent(instruction).strip()
+        self._raw_instruction = textwrap.dedent(instruction).strip()
 
         self._graceful_errors = graceful_errors
 
@@ -168,24 +168,24 @@ class BaseAgent:
             else variable_function(**kwargs)
         )
 
-    async def instruction(self, context: _Context | None) -> str:
+    async def _get_instruction(self, context: _Context | None) -> str:
         """
         Returns the agent's instruction with variables replaced.
         """
-        variables = re.findall(r"(\{\w+\})", self._instruction)
+        variables = re.findall(r"\{(\w+)\}", self._raw_instruction)
         for variable in variables:
-            if variable[1:-1] not in self._variables:
-                raise ValueError(f"Variable {variable} is not defined.")
+            if variable not in self._variables:
+                raise errors.MissingVariable(f"Variable '{variable}' is not defined.")
 
         variable_values = {
-            variable[1:-1]: await self._execute_variable(variable[1:-1], context)
+            variable: await self._execute_variable(variable, context)
             for variable in variables
         }
-        instruction = self._instruction.format(**variable_values)
+        instruction = self._raw_instruction.format(**variable_values)
         return instruction
 
     async def _get_system_prompt(self, context: _Context | None) -> SystemMessage:
-        return self._create_system_message(await self.instruction(context))
+        return self._create_system_message(await self._get_instruction(context))
 
     def summary(self) -> str:
         """
