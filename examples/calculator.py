@@ -18,6 +18,8 @@ agent = StructuredAgent(
         You are a calculating agent.
         Always use tools to calculate things.
         Never try to calculate things on your own.
+
+        The current time is {current_time}.
         """,
     # Pass in an OpenAI client that will be used to interact with the model.
     # Any API that implements the OpenAI interface can be used.
@@ -25,6 +27,11 @@ agent = StructuredAgent(
     model="gpt-4o-mini",
     response_format=ResponseFormat,
 )
+
+
+@agent.variable
+async def current_time() -> str:
+    return "12:00 PM"
 
 
 # Define tools using the `@agent.tool` decorator.
@@ -61,8 +68,8 @@ async def main() -> None:
     response = await agent.speak(
         "and how much is that times two?", history=response.history
     )
-    for message in response.messages:
-        print(message.message)
+
+    response = await agent.speak("what is the current time?", history=response.history)
 
 
 if __name__ == "__main__":

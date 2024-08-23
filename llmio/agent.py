@@ -4,6 +4,7 @@ from typing import Callable, Generic, Type, Any, AsyncIterator, TypeVar
 from dataclasses import dataclass
 import textwrap
 from inspect import signature, iscoroutinefunction
+import re
 
 from typing_extensions import assert_never
 import pydantic
@@ -143,21 +144,48 @@ class BaseAgent:
         self._graceful_errors = graceful_errors
 
         self._tools: list[_Tool] = []
+        self._variables: dict[str, Callable] = {}
+
         self._prompt_inspectors: list[Callable] = []
         self._output_inspectors: list[Callable] = []
         self._message_callbacks: list[Callable] = []
 
-    def _get_system_prompt(self) -> SystemMessage:
-        return self._create_system_message(self._instruction)
+    async def _execute_variable(
+        self, variable_name: str, context: _Context | None
+    ) -> Any:
+        """
+        Executes a variable function by name.
+        """
+        variable_function = self._variables[variable_name]
 
-    def _create_prompt(self, message_history: list[Message]) -> list[Message]:
+        kwargs = {}
+        if _CONTEXT_ARG_NAME in signature(variable_function).parameters:
+            kwargs[_CONTEXT_ARG_NAME] = context
+
+        return (
+            await variable_function(**kwargs)
+            if iscoroutinefunction(variable_function)
+            else variable_function(**kwargs)
+        )
+
+    async def instruction(self, context: _Context | None) -> str:
         """
-        Creates a prompt by combining the system instruction with the message history.
+        Returns the agent's instruction with variables replaced.
         """
-        return [
-            self._get_system_prompt(),
-            *message_history,
-        ]
+        variables = re.findall(r"(\{\w+\})", self._instruction)
+        for variable in variables:
+            if variable[1:-1] not in self._variables:
+                raise ValueError(f"Variable {variable} is not defined.")
+
+        variable_values = {
+            variable[1:-1]: await self._execute_variable(variable[1:-1], context)
+            for variable in variables
+        }
+        instruction = self._instruction.format(**variable_values)
+        return instruction
+
+    async def _get_system_prompt(self, context: _Context | None) -> SystemMessage:
+        return self._create_system_message(await self.instruction(context))
 
     def summary(self) -> str:
         """
@@ -190,6 +218,13 @@ class BaseAgent:
             return decorator(tool_function)
 
         return decorator
+
+    def variable(self, function: Callable) -> Callable:
+        """
+        Decorator to define a variable function.
+        """
+        self._variables[function.__name__] = function
+        return function
 
     def inspect_prompt(self, function: Callable) -> Callable:
         """
@@ -379,11 +414,16 @@ class BaseAgent:
         self,
         history: list[Message],
         context: _Context | None,
+        system_message: SystemMessage | None = None,
     ) -> AsyncIterator[tuple[str, list[Message]]]:
         """
         The main loop that sends the prompt to the OpenAI API and processes the response.
         """
-        prompt = self._create_prompt(history)
+        system_message = system_message or await self._get_system_prompt(context)
+        prompt = [
+            system_message,
+            *history,
+        ]
         await self._run_prompt_inspectors(prompt, context)
 
         completion = await self._get_completion(
@@ -452,6 +492,7 @@ class BaseAgent:
         async for ans, hist in self._iterate(
             history=history,
             context=context,
+            system_message=system_message,
         ):
             yield ans, hist
 
