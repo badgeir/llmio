@@ -9,6 +9,7 @@
 ![tests](https://github.com/badgeir/llmio/actions/workflows/test.yml/badge.svg)
 [![pypi](https://img.shields.io/pypi/v/llmio.svg)](https://pypi.python.org/pypi/llmio)
 [![versions](https://img.shields.io/pypi/pyversions/llmio.svg)](https://github.com/badgeir/llmio)
+[![Downloads](https://static.pepy.tech/badge/llmio/month)](https://pepy.tech/project/llmio)
 
 **llmio** is a lightweight library that leverages type annotations to enable seamless tool execution with OpenAI-compatible APIs, including OpenAI, Azure OpenAI, AWS Bedrock Access Gateway, and Huggingface TGI.
 
