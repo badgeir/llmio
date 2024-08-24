@@ -14,9 +14,7 @@ Short summary of setup:
 import asyncio
 import os
 
-import openai
-
-from llmio import Agent
+from llmio import Agent, GeminiClient
 
 
 # Available locations:
@@ -28,7 +26,7 @@ PROJECT_ID = "your_project_id"
 BASE_URL = f"https://{LOCATION}-aiplatform.googleapis.com/v1beta1/projects/{PROJECT_ID}/locations/{LOCATION}/endpoints/openapi"  # pylint: disable=line-too-long
 
 
-gemini_client = openai.AsyncOpenAI(
+gemini_client = GeminiClient(
     api_key=os.environ["GOOGLE_GEMINI_TOKEN"],
     base_url=BASE_URL,
 )
