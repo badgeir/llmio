@@ -28,7 +28,7 @@ Welcome to **llmio**! If you're looking for a simple, efficient way to build LLM
     - [A simple calculator example](#-a-simple-calculator-example)
     - [More examples](#more-examples)
 3. [Details](#details-)
-    - [Tools](#tools)
+    - [Tools](#tools-)
     - [Parameter descriptions](#parameter-descriptions-)
     - [Optional parameters](#optional-parameters)
     - [Supported parameter types](#supported-parameter-types-)
@@ -36,7 +36,7 @@ Welcome to **llmio**! If you're looking for a simple, efficient way to build LLM
     - [Keeping track of context](#keeping-track-of-context-)
     - [Batched execution](#batched-execution)
     - [A simple example of continuous interaction](#a-simple-example-of-continuous-interaction-)
-    - [Handling Uninterpretable Tool Calls](#handling-uninterpretable-tool-calls-)
+    - [Handling uninterpretable tool calls](#handling-uninterpretable-tool-calls-)
     - [Strict tool mode](#strict-tool-mode-)
     - [Structured output](#structured-output-)
     - [Get involved](#get-involved-)
@@ -179,7 +179,8 @@ Tools:
        'strict': False}
 ```
 
-### Parameter Descriptions 📝
+### Parameter descriptions 📝
+
 You can use pydantic.Field to describe parameters in detail. These descriptions will be included in the tool schema, guiding the language model to understand the tool's requirements better.
 
 ``` python
@@ -270,7 +271,7 @@ async def main() -> None:
     )
 ```
 
-### A Simple Example of Continuous Interaction 🔄
+### A simple example of continuous interaction 🔄
 
 ``` python
 @agent.on_message
@@ -300,7 +301,7 @@ async def main() -> None:
             print(message)
 ```
 
-### Handling Uninterpretable Tool Calls 🚫
+### Handling uninterpretable tool calls 🚫
 
 `llmio` allows you to handle uninterpretable tool calls gracefully. By default, the agent will raise an exception if it encounters an unrecognized tool or invalid arguments. However, you can configure it to provide feedback to the model instead.
 
@@ -320,7 +321,7 @@ agent = Agent(
 )
 ```
 
-### Strict Tool Mode 🔒
+### Strict tool mode 🔒
 
 OpenAI supports a strict mode for tools, ensuring that only valid arguments are passed according to the function schema. Enable this by setting `strict=True` in the tool decorator.
 
@@ -378,6 +379,6 @@ if __name__ == "__main__":
 #  'detected_sentiment': 'positive'}
 ```
 
-## Get Involved 🎉
+## Get involved 🎉
 
 Your feedback, ideas, and contributions are welcome! Feel free to open an issue, submit a pull request, or start a discussion to help make `llmio` even better.
