@@ -58,7 +58,7 @@ async def multiply(num1: float, num2: float) -> float:
 
 @agent.on_message
 async def print_message(message: str):
-    print(f"** Posting message: '{message}'")
+    print(f"** Posting message: '{message.strip()}'")
 
 
 async def main() -> None:
