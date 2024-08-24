@@ -34,6 +34,7 @@ Welcome to **llmio**! If you're looking for a simple, efficient way to build LLM
     - [Supported parameter types](#supported-parameter-types)
     - [Hooks](#hooks)
     - [Keeping track of context](#keeping-track-of-context)
+    - [Dynamic instructions](#dynamic-instructions)
     - [Batched execution](#batched-execution)
     - [A simple example of continuous interaction](#a-simple-example-of-continuous-interaction)
     - [Handling uninterpretable tool calls](#handling-uninterpretable-tool-calls)
