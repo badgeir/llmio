@@ -260,9 +260,9 @@ async def main() -> None:
 
 ### Dynamic instructions
 
-llmio allows you to inject dynamic content into your instructions using variable hooks. These hooks act as placeholders, filling in values at runtime.
+`llmio` allows you to inject dynamic content into your instructions using variable hooks. These hooks act as placeholders, filling in values at runtime.
 
-When an instruction contains a placeholder that matches the name of a variable hook, llmio will automatically replace it with the corresponding value returned by the hook. If a placeholder does not have a matching variable hook, a MissingVariable error will be raised.
+When an instruction contains a placeholder that matches the name of a variable hook, `llmio` will automatically replace it with the corresponding value returned by the hook. If a placeholder does not have a matching variable hook, a `MissingVariable` error will be raised.
 
 ``` python
 agent = Agent(
