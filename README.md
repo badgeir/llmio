@@ -65,6 +65,8 @@ agent = Agent(
 
 ### 💻 A simple calculator example
 
+Let’s walk through a basic example where we create a simple calculator using llmio. This calculator can add and multiply numbers, leveraging AI to handle the operations. It’s a straightforward way to see how llmio can manage tasks while keeping the code clean and easy to follow.
+
 ``` python
 import asyncio
 import os
