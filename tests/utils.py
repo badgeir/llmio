@@ -1,20 +1,20 @@
 import contextlib
+from typing import Any
 from unittest.mock import patch
 
-from openai.types.chat import ChatCompletion, ChatCompletionMessage
-from openai.types.chat.chat_completion import Choice
-
-from llmio import Message
+from llmio import types as T, models
 
 
 @contextlib.contextmanager
 def mocked_async_openai_replies(
-    replies: list[ChatCompletionMessage],
+    replies: list[models.ChatCompletionMessage],
 ):
     with patch(
-        "llmio.agent.BaseAgent._get_completion",
+        "llmio.client.BaseClient.get_chat_completion",
         side_effect=[
-            ChatCompletion.construct(choices=[Choice.construct(message=reply)])
+            models.ChatCompletion.construct(
+                choices=[models.Choice.construct(message=reply)]
+            )
             for reply in replies
         ],
     ):
@@ -23,21 +23,28 @@ def mocked_async_openai_replies(
 
 @contextlib.contextmanager
 def mocked_async_openai_lookup(
-    replies: dict[str, ChatCompletionMessage],
+    replies: dict[str, models.ChatCompletionMessage],
 ):
-    def side_effect(messages: list[Message]) -> ChatCompletion:
+    def mock_function(
+        model: str,
+        messages: list[T.Message],
+        tools: list[models.ToolCall],
+        response_format: dict[str, Any] | None,
+    ) -> models.ChatCompletion:
+        assert isinstance(model, str)
         content = messages[-1]["content"]
         assert isinstance(content, str)
+        assert isinstance(tools, list)
         for reply in replies:
             if content == reply:
-                return ChatCompletion.construct(
-                    choices=[Choice.construct(message=replies[reply])]
+                return models.ChatCompletion.construct(
+                    choices=[models.Choice.construct(message=replies[reply])]
                 )
 
         raise ValueError(f"Unexpected prompt: {content}")
 
     with patch(
-        "llmio.agent.BaseAgent._get_completion",
-        side_effect=side_effect,
+        "llmio.client.BaseClient.get_chat_completion",
+        side_effect=mock_function,
     ):
         yield replies

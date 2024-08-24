@@ -1,16 +1,15 @@
 import asyncio
 
-import openai
-from llmio.agent import Agent
+from llmio import Agent, AzureOpenAIClient
 
 
 agent = Agent(
     instruction="""
         You are a calculating agent running in Azure.
         """,
-    client=openai.AsyncAzureOpenAI(
+    client=AzureOpenAIClient(
         api_key="<your-api-key",
-        azure_endpoint="<your-azure-endpoint>",
+        endpoint="<your-azure-endpoint>",
         api_version="<your-api-version>",
     ),
     model="<your-deployment>",

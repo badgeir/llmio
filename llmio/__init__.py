@@ -1,6 +1,9 @@
 from .agent import (
     Agent,
     StructuredAgent,
+)
+
+from .types import (
     Message,
     UserMessage,
     AssistantMessage,
@@ -9,6 +12,11 @@ from .agent import (
 )
 
 from .errors import BadToolCall
+from .client import (
+    OpenAIClient,
+    AzureOpenAIClient,
+    GeminiClient,
+)
 
 
 __all__ = [
@@ -20,4 +28,7 @@ __all__ = [
     "ToolCall",
     "ToolMessage",
     "BadToolCall",
+    "OpenAIClient",
+    "AzureOpenAIClient",
+    "GeminiClient",
 ]

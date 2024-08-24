@@ -1,22 +1,16 @@
 import json
 
-import openai
 import pytest
 
-from llmio import Agent, errors
+from llmio import Agent, errors, models, OpenAIClient
 
 from tests.utils import mocked_async_openai_replies
-from openai.types.chat.chat_completion_message import (
-    ChatCompletionMessage,
-    ChatCompletionMessageToolCall,
-)
-from openai.types.chat.chat_completion_message_tool_call import Function
 
 
 async def test_graceful_handling() -> None:
     agent = Agent(
         instruction="You are a calculator",
-        client=openai.AsyncOpenAI(api_key="abc"),
+        client=OpenAIClient(api_key="abc"),
         graceful_errors=True,
     )
 
@@ -25,31 +19,31 @@ async def test_graceful_handling() -> None:
         return num1 + num2
 
     mocks = [
-        ChatCompletionMessage.construct(
+        models.ChatCompletionMessage.construct(
             tool_calls=[
-                ChatCompletionMessageToolCall.construct(
+                models.ToolCall.construct(
                     id="add_1",
                     type="function",
-                    function=Function.construct(
+                    function=models.Function.construct(
                         name="add", arguments=json.dumps({"num1": 10, "num3": 20})
                     ),
                 ),
             ],
             role="assistant",
         ),
-        ChatCompletionMessage.construct(
+        models.ChatCompletionMessage.construct(
             role="assistant",
             tool_calls=[
-                ChatCompletionMessageToolCall.construct(
+                models.ToolCall.construct(
                     id="divide_1",
                     type="function",
-                    function=Function.construct(
+                    function=models.Function.construct(
                         name="divide", arguments=json.dumps({"num1": 30, "num2": 2})
                     ),
                 ),
             ],
         ),
-        ChatCompletionMessage.construct(
+        models.ChatCompletionMessage.construct(
             role="assistant",
             content="Something went wrong",
         ),
@@ -83,7 +77,7 @@ async def test_graceful_handling() -> None:
 async def test_bad_tool_call_args_exception() -> None:
     agent = Agent(
         instruction="You are a calculator",
-        client=openai.AsyncOpenAI(api_key="abc"),
+        client=OpenAIClient(api_key="abc"),
         graceful_errors=False,
     )
 
@@ -92,12 +86,12 @@ async def test_bad_tool_call_args_exception() -> None:
         return num1 + num2
 
     mocks = [
-        ChatCompletionMessage.construct(
+        models.ChatCompletionMessage.construct(
             tool_calls=[
-                ChatCompletionMessageToolCall.construct(
+                models.ToolCall.construct(
                     id="add_1",
                     type="function",
-                    function=Function.construct(
+                    function=models.Function.construct(
                         name="add", arguments=json.dumps({"num1": 10, "num3": 20})
                     ),
                 ),
@@ -113,7 +107,7 @@ async def test_bad_tool_call_args_exception() -> None:
 async def test_bad_tool_call_name_exception() -> None:
     agent = Agent(
         instruction="You are a calculator",
-        client=openai.AsyncOpenAI(api_key="abc"),
+        client=OpenAIClient(api_key="abc"),
         graceful_errors=False,
     )
 
@@ -122,12 +116,12 @@ async def test_bad_tool_call_name_exception() -> None:
         return num1 + num2
 
     mocks = [
-        ChatCompletionMessage.construct(
+        models.ChatCompletionMessage.construct(
             tool_calls=[
-                ChatCompletionMessageToolCall.construct(
+                models.ToolCall.construct(
                     id="add_1",
                     type="function",
-                    function=Function.construct(
+                    function=models.Function.construct(
                         name="mul", arguments=json.dumps({"num1": 10, "num2": 20})
                     ),
                 ),

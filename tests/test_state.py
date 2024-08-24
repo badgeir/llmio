@@ -2,22 +2,15 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 
-import openai
-
-from llmio import Agent
+from llmio import Agent, models, OpenAIClient
 
 from tests.utils import mocked_async_openai_replies
-from openai.types.chat.chat_completion_message import (
-    ChatCompletionMessage,
-    ChatCompletionMessageToolCall,
-)
-from openai.types.chat.chat_completion_message_tool_call import Function
 
 
 async def test_context() -> None:
     agent = Agent(
         instruction=f"You are a personal agent. You can help users set reminders. The current time is {datetime.now()}",
-        client=openai.AsyncOpenAI(api_key="abc"),
+        client=OpenAIClient(api_key="abc"),
         model="gpt-4o-mini",
     )
 
@@ -33,13 +26,13 @@ async def test_context() -> None:
         return f"Successfully created reminder for user {_context.id}: {description} at {datetime_iso}"
 
     mocks = [
-        ChatCompletionMessage.construct(
+        models.ChatCompletionMessage.construct(
             content="Ok! Adding a reminder.",
             tool_calls=[
-                ChatCompletionMessageToolCall.construct(
+                models.ToolCall.construct(
                     id="set_reminder_1",
                     type="function",
-                    function=Function.construct(
+                    function=models.Function.construct(
                         name="set_reminder",
                         arguments=json.dumps(
                             {
@@ -52,7 +45,7 @@ async def test_context() -> None:
             ],
             role="assistant",
         ),
-        ChatCompletionMessage.construct(
+        models.ChatCompletionMessage.construct(
             role="assistant",
             content="I successfully created a reminder!",
         ),
