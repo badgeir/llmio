@@ -9,7 +9,7 @@ from typing_extensions import assert_never
 import pydantic
 
 from llmio import function_parser, errors, types as T, models
-from llmio.client import BaseClient, AsyncOpenAI
+from llmio.clients import BaseClient, AsyncOpenAI
 
 
 _Context = TypeVar("_Context")

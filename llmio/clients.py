@@ -29,8 +29,8 @@ class BaseClient:
 
 
 class OpenAIClient(BaseClient):
-    def __init__(self, api_key: str) -> None:
-        client = AsyncOpenAI(api_key=api_key)
+    def __init__(self, api_key: str, base_url: str | None = None) -> None:
+        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         super().__init__(client=client)
 
 

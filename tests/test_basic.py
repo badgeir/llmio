@@ -6,7 +6,7 @@ import pytest
 from openai import AsyncOpenAI, AsyncAzureOpenAI
 
 from llmio import Agent, models
-from llmio.client import BaseClient, OpenAIClient, AzureOpenAIClient, GeminiClient
+from llmio.clients import BaseClient, OpenAIClient, AzureOpenAIClient, GeminiClient
 
 from tests.utils import mocked_async_openai_replies
 

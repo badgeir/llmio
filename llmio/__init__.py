@@ -12,7 +12,7 @@ from .types import (
 )
 
 from .errors import BadToolCall
-from .client import (
+from .clients import (
     OpenAIClient,
     AzureOpenAIClient,
     GeminiClient,
