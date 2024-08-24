@@ -25,6 +25,8 @@ Welcome to **llmio**! If you're looking for a simple, efficient way to build LLM
 
 1. [Getting started](#getting-started-🚀)
 2. [Examples](#examples)
+    - [A simple calculator example](#💻-a-simple-calculator-example)
+    - [More examples](#more-examples)
 3. [Details](#details)
     - [Tools](#tools)
     - [Parameter descriptions](#parameter-descriptions)
