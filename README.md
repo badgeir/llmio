@@ -1,6 +1,6 @@
 
 # llmio
-## 🎈 A Lightweight Python Library for LLM I/O 🎈
+## A Lightweight Python Library for LLM I/O 🎈
 
 
 ![pylint](https://github.com/badgeir/llmio/actions/workflows/pylint.yml/badge.svg)
