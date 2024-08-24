@@ -28,17 +28,17 @@ Welcome to **llmio**! If you're looking for a simple, efficient way to build LLM
     - [A simple calculator example](#-a-simple-calculator-example)
     - [More examples](#more-examples)
 3. [Details](#details-)
-    - [Tools](#tools-)
-    - [Parameter descriptions](#parameter-descriptions-)
+    - [Tools](#tools)
+    - [Parameter descriptions](#parameter-descriptions)
     - [Optional parameters](#optional-parameters)
-    - [Supported parameter types](#supported-parameter-types-)
-    - [Hooks](#hooks-)
-    - [Keeping track of context](#keeping-track-of-context-)
+    - [Supported parameter types](#supported-parameter-types)
+    - [Hooks](#hooks)
+    - [Keeping track of context](#keeping-track-of-context)
     - [Batched execution](#batched-execution)
-    - [A simple example of continuous interaction](#a-simple-example-of-continuous-interaction-)
-    - [Handling uninterpretable tool calls](#handling-uninterpretable-tool-calls-)
-    - [Strict tool mode](#strict-tool-mode-)
-    - [Structured output](#structured-output-)
+    - [A simple example of continuous interaction](#a-simple-example-of-continuous-interaction)
+    - [Handling uninterpretable tool calls](#handling-uninterpretable-tool-calls)
+    - [Strict tool mode](#strict-tool-mode)
+    - [Structured output](#structured-output)
     - [Get involved](#get-involved-)
 
 ## Getting Started 🚀
@@ -149,7 +149,7 @@ For a notebook going throught how to create a simple AI task manager, see [examp
 
 ## Details 🔍
 
-### Tools 🛠️
+### Tools
 
 Under the hood, llmio uses Python's type annotations to automatically generate function schemas that are compatible with OpenAI tools. It also leverages Pydantic models to validate the input types of arguments passed by the language model, ensuring robust and error-free execution.
 
@@ -179,7 +179,7 @@ Tools:
        'strict': False}
 ```
 
-### Parameter descriptions 📝
+### Parameter descriptions
 
 You can use pydantic.Field to describe parameters in detail. These descriptions will be included in the tool schema, guiding the language model to understand the tool's requirements better.
 
@@ -232,7 +232,7 @@ async def inspect_output(output: llmio.Message):
     pprint(output)
 ``` 
 
-### Keeping track of context 🧠
+### Keeping track of context
 
 Pass an object of any type to the agent to maintain context across interactions. This context is available to tools and hooks via the special `_context` argument but is not passed to the language model itself.
 
@@ -271,7 +271,7 @@ async def main() -> None:
     )
 ```
 
-### A simple example of continuous interaction 🔄
+### A simple example of continuous interaction
 
 ``` python
 @agent.on_message
@@ -301,7 +301,7 @@ async def main() -> None:
             print(message)
 ```
 
-### Handling uninterpretable tool calls 🚫
+### Handling uninterpretable tool calls
 
 `llmio` allows you to handle uninterpretable tool calls gracefully. By default, the agent will raise an exception if it encounters an unrecognized tool or invalid arguments. However, you can configure it to provide feedback to the model instead.
 
@@ -321,7 +321,7 @@ agent = Agent(
 )
 ```
 
-### Strict tool mode 🔒
+### Strict tool mode
 
 OpenAI supports a strict mode for tools, ensuring that only valid arguments are passed according to the function schema. Enable this by setting `strict=True` in the tool decorator.
 
@@ -331,7 +331,7 @@ async def add_task(name: str, description: str | None = None) -> str:
     ...
 ```
 
-### Structured output 🗂️
+### Structured output
 
 `llmio` can return structured output from the messages it generates, ideal for more advanced use cases. This feature is currently supported by OpenAI and Azure OpenAI.
 
