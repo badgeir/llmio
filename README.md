@@ -63,6 +63,8 @@ agent = Agent(
 
 ## Examples
 
+### 💻 A simple calculator example
+
 ``` python
 import asyncio
 import os
