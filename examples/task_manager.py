@@ -8,7 +8,6 @@ import os
 from typing import Literal
 
 from pydantic import BaseModel
-from openai import AsyncOpenAI
 
 import llmio
 
@@ -27,7 +26,7 @@ TASKS: list[Task] = []
 # Define an agent
 agent = llmio.Agent(
     instruction="You are a task manager.",
-    client=AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
+    client=llmio.OpenAIClient(api_key=os.environ["OPENAI_TOKEN"]),
 )
 
 

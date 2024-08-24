@@ -2,8 +2,7 @@ import asyncio
 import os
 
 from pydantic import BaseModel
-import openai
-from llmio import StructuredAgent
+from llmio import StructuredAgent, OpenAIClient
 
 
 class ResponseFormat(BaseModel):
@@ -21,7 +20,7 @@ agent = StructuredAgent(
         """,
     # Pass in an OpenAI client that will be used to interact with the model.
     # Any API that implements the OpenAI interface can be used.
-    client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
+    client=OpenAIClient(api_key=os.environ["OPENAI_TOKEN"]),
     model="gpt-4o-mini",
     response_format=ResponseFormat,
 )
@@ -45,8 +44,8 @@ async def multiply(num1: float, num2: float) -> float:
 # Define a message handler using the `@agent.on_message` decorator.
 # The handler is optional. The messages will also be returned by the `speak` method.
 @agent.on_message
-async def print_message(message: str):
-    print(f"** Posting message: '{message}'")
+async def print_message(message: ResponseFormat):
+    print(f"** Posting message: '{message.message}'")
 
 
 async def main() -> None:
