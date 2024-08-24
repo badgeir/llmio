@@ -53,12 +53,12 @@ pip install llmio
 
 ``` python
 import asyncio
-from llmio import Agent
-from openai import AsyncOpenAI
+from llmio import Agent, OpenAIClient
+
 
 agent = Agent(
     instruction="You are a task manager.",
-    client=AsyncOpenAI(api_key="your_openai_api_key"),
+    client=OpenAIClient(api_key="your_openai_api_key"),
 )
 
 # Add tools and interact with your agent...
@@ -74,8 +74,7 @@ Let’s walk through a basic example where we create a simple calculator using l
 import asyncio
 import os
 
-import openai
-from llmio import Agent
+from llmio import Agent, OpenAIClient
 
 
 # Define an agent that can add and multiply numbers using tools.
@@ -89,7 +88,7 @@ agent = Agent(
         """,
     # Pass in an OpenAI client that will be used to interact with the model.
     # Any API that implements the OpenAI interface can be used.
-    client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
+    client=OpenAIClient(api_key=os.environ["OPENAI_TOKEN"]),
     model="gpt-4o-mini",
 )
 
@@ -308,14 +307,14 @@ async def main() -> None:
 ``` python
 # Raises an exception for unrecognized tools or invalid arguments
 agent = Agent(
-    client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
+    client=OpenAIClient(api_key=os.environ["OPENAI_TOKEN"]),
     model="gpt-4o-mini",
     graceful_errors=False,  # This is the default
 )
 
 # Provides feedback to the model for unrecognized tools or invalid arguments
 agent = Agent(
-    client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
+    client=OpenAIClient(api_key=os.environ["OPENAI_TOKEN"]),
     model="gpt-4o-mini",
     graceful_errors=True,
 )
@@ -342,9 +341,8 @@ from typing import Literal
 
 import pydantic
 import os
-import openai
 
-from llmio import StructuredAgent
+from llmio import StructuredAgent, OpenAIClient
 
 
 class OutputFormat(pydantic.BaseModel):
@@ -354,7 +352,7 @@ class OutputFormat(pydantic.BaseModel):
 
 agent = StructuredAgent(
     instruction="Answer the questions and detect the user sentiment.",
-    client=openai.AsyncOpenAI(api_key=os.environ["OPENAI_TOKEN"]),
+    client=OpenAIClient(api_key=os.environ["OPENAI_TOKEN"]),
     model="gpt-4o-mini",
     response_format=OutputFormat,
 )

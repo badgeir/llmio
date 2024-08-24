@@ -8,20 +8,9 @@ import re
 
 from typing_extensions import assert_never
 import pydantic
-import openai
-from openai.types.chat import (
-    ChatCompletion,
-    ChatCompletionMessage,
-    ChatCompletionMessageParam as Message,
-    ChatCompletionToolMessageParam as ToolMessage,
-    ChatCompletionAssistantMessageParam as AssistantMessage,
-    ChatCompletionUserMessageParam as UserMessage,
-    ChatCompletionSystemMessageParam as SystemMessage,
-    ChatCompletionMessageToolCallParam as ToolCall,
-)
-from openai.types.chat.chat_completion_message_tool_call_param import Function
 
-from llmio import function_parser, errors
+from llmio import function_parser, errors, types as T, models
+from llmio.clients import BaseClient, AsyncOpenAI
 
 
 _Context = TypeVar("_Context")
@@ -32,7 +21,7 @@ _CONTEXT_ARG_NAME = "_context"
 @dataclass
 class AgentResponse:
     messages: list[str]
-    history: list[Message]
+    history: list[T.Message]
 
 
 @dataclass
@@ -88,19 +77,19 @@ class _Tool:
         return self.params.parse_raw(args)
 
     @property
-    def tool_definition(self) -> dict:
+    def function_definition(self) -> T.FunctionDefinition:
         """
         Returns the tool schema that is sent to the OpenAI API.
         """
         schema = self.params.schema()
         if self.strict:
             schema["additionalProperties"] = False
-        return {
-            "name": self.name,
-            "description": self.description,
-            "parameters": schema,
-            "strict": self.strict,
-        }
+        return T.FunctionDefinition(
+            name=self.name,
+            description=self.description,
+            parameters=schema,
+            strict=self.strict,
+        )
 
 
 _ResponseFormatT = TypeVar("_ResponseFormatT", bound=pydantic.BaseModel)
@@ -108,9 +97,9 @@ _ResponseFormatT = TypeVar("_ResponseFormatT", bound=pydantic.BaseModel)
 
 class StructuredAgentResponse(Generic[_ResponseFormatT]):
     messages: list[_ResponseFormatT]
-    history: list[Message]
+    history: list[T.Message]
 
-    def __init__(self, messages: list[_ResponseFormatT], history: list[Message]):
+    def __init__(self, messages: list[_ResponseFormatT], history: list[T.Message]):
         self.messages = messages
         self.history = history
 
@@ -119,7 +108,7 @@ class BaseAgent:
     def __init__(
         self,
         instruction: str,
-        client: openai.AsyncOpenAI,
+        client: BaseClient | AsyncOpenAI,
         model: str = "gpt-4o-mini",
         graceful_errors: bool = False,
     ):
@@ -138,8 +127,13 @@ class BaseAgent:
                                 to the model and continue the interaction.
         """
         self._model = model
-        self._client = client
         self._raw_instruction = textwrap.dedent(instruction).strip()
+        if isinstance(client, AsyncOpenAI):
+            # Backward compatibility
+            self._client = BaseClient(client=client)
+        else:
+            self._client = client
+        self._instruction = textwrap.dedent(instruction).strip()
 
         self._graceful_errors = graceful_errors
 
@@ -184,7 +178,7 @@ class BaseAgent:
         instruction = self._raw_instruction.format(**variable_values)
         return instruction
 
-    async def _get_system_prompt(self, context: _Context | None) -> SystemMessage:
+    async def _get_system_prompt(self, context: _Context | None) -> T.SystemMessage:
         return self._create_system_message(await self._get_instruction(context))
 
     def summary(self) -> str:
@@ -196,7 +190,7 @@ class BaseAgent:
             lines.append(f"  - {tool.name}")
             lines.append("    Schema:")
             lines.append(
-                textwrap.indent(pprint.pformat(tool.tool_definition), "      ")
+                textwrap.indent(pprint.pformat(tool.function_definition), "      ")
             )
             lines.append("")
         return "\n".join(lines)
@@ -258,7 +252,7 @@ class BaseAgent:
         return function
 
     async def _run_prompt_inspectors(
-        self, prompt: list[Message], context: _Context | None
+        self, prompt: list[T.Message], context: _Context | None
     ) -> None:
         """
         Runs all prompt inspectors with the full prompt prior to sending it to the OpenAI API.
@@ -273,7 +267,7 @@ class BaseAgent:
                 inspector(prompt, **kwargs)
 
     async def _run_output_inspectors(
-        self, content: AssistantMessage, context: _Context | None
+        self, content: T.AssistantMessage, context: _Context | None
     ) -> None:
         """
         Runs all output inspectors with the full generated message, including tool calls.
@@ -313,21 +307,21 @@ class BaseAgent:
 
     @staticmethod
     def _parse_completion(
-        completion: ChatCompletionMessage,
-    ) -> AssistantMessage:
+        completion: models.ChatCompletionMessage,
+    ) -> T.AssistantMessage:
         """
         Parses the completion received from the OpenAI API into a Message TypedDict.
         """
-        result = AssistantMessage(
+        result = T.AssistantMessage(
             role=completion.role,
             content=completion.content,
         )
         if completion.tool_calls:
             result["tool_calls"] = [
-                ToolCall(
+                T.ToolCall(
                     id=tool_call.id,
                     type=tool_call.type,
-                    function=Function(
+                    function=T.ToolCallFunction(
                         name=tool_call.function.name,
                         arguments=tool_call.function.arguments,
                     ),
@@ -336,48 +330,49 @@ class BaseAgent:
             ]
         return result
 
-    def _get_model_request_kwargs(self) -> dict[str, Any]:
-        """
-        Returns the tools schema that is sent to the OpenAI API.
-        Built dynamically because the API does not accept empty lists.
-        """
-        kwargs: dict[str, Any] = {}
-
-        if tool_definitions := [
-            {"type": "function", "function": tool.tool_definition}
+    @property
+    def _tool_definitions(self) -> list[T.Tool]:
+        return [
+            T.Tool(
+                function=tool.function_definition,
+                type="function",
+            )
             for tool in self._tools
-        ]:
-            kwargs["tools"] = tool_definitions
-        return kwargs
+        ]
+
+    @property
+    def response_format(self) -> dict[str, Any] | None:
+        return None
 
     async def _get_completion(
         self,
-        messages: list[Message],
-    ) -> ChatCompletion:
+        messages: list[T.Message],
+    ) -> models.ChatCompletion:
         """
         Sends the prompt to the OpenAI API and returns the completion.
         """
-        return await self._client.chat.completions.create(
+        return await self._client.get_chat_completion(
             model=self._model,
             messages=messages,
-            **self._get_model_request_kwargs(),
+            tools=self._tool_definitions,
+            response_format=self.response_format,
         )
 
-    def _create_user_message(self, message: str) -> UserMessage:
-        return UserMessage(
+    def _create_user_message(self, message: str) -> T.UserMessage:
+        return T.UserMessage(
             role="user",
             content=message,
         )
 
-    def _create_tool_message(self, tool_call_id: str, content: str) -> ToolMessage:
-        return ToolMessage(
+    def _create_tool_message(self, tool_call_id: str, content: str) -> T.ToolMessage:
+        return T.ToolMessage(
             role="tool",
             content=content,
             tool_call_id=tool_call_id,
         )
 
-    def _create_system_message(self, message: str) -> SystemMessage:
-        return SystemMessage(
+    def _create_system_message(self, message: str) -> T.SystemMessage:
+        return T.SystemMessage(
             role="system",
             content=message,
         )
@@ -385,7 +380,7 @@ class BaseAgent:
     async def _speak(
         self,
         message: str,
-        history: list[Message] | None = None,
+        history: list[T.Message] | None = None,
         _context: _Context | None = None,
     ) -> AgentResponse:
         """
@@ -412,10 +407,10 @@ class BaseAgent:
 
     async def _iterate(
         self,
-        history: list[Message],
+        history: list[T.Message],
         context: _Context | None,
-        system_message: SystemMessage | None = None,
-    ) -> AsyncIterator[tuple[str, list[Message]]]:
+        system_message: T.SystemMessage | None = None,
+    ) -> AsyncIterator[tuple[str, list[T.Message]]]:
         """
         The main loop that sends the prompt to the OpenAI API and processes the response.
         """
@@ -501,7 +496,7 @@ class Agent(BaseAgent):
     async def speak(
         self,
         message: str,
-        history: list[Message] | None = None,
+        history: list[T.Message] | None = None,
         _context: _Context | None = None,
     ) -> AgentResponse:
         return await self._speak(message, history=history, _context=_context)
@@ -511,7 +506,7 @@ class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):
     def __init__(
         self,
         instruction: str,
-        client: openai.AsyncOpenAI,
+        client: BaseClient | AsyncOpenAI,
         response_format: Type[_ResponseFormatT],
         model: str = "gpt-4o-mini",
         graceful_errors: bool = False,
@@ -527,7 +522,7 @@ class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):
     async def speak(
         self,
         message: str,
-        history: list[Message] | None = None,
+        history: list[T.Message] | None = None,
         _context: _Context | None = None,
     ) -> StructuredAgentResponse[_ResponseFormatT]:
         assert self._response_format is not None
@@ -540,11 +535,11 @@ class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):
             history=response.history,
         )
 
-    def _get_model_request_kwargs(self) -> dict[str, Any]:
-        kwargs = super()._get_model_request_kwargs()
+    @property
+    def response_format(self) -> dict[str, Any]:
         schema = self._response_format.schema()
         schema["additionalProperties"] = False
-        kwargs["response_format"] = {
+        return {
             "type": "json_schema",
             "json_schema": {
                 "schema": schema,
@@ -552,7 +547,6 @@ class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):
                 "strict": True,
             },
         }
-        return kwargs
 
     def _parse_message_inspector_content(self, message: str) -> _ResponseFormatT:
         return self._response_format.parse_raw(message)

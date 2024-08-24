@@ -1,25 +1,37 @@
 import json
+from typing import Iterable
 
-import openai
+import pytest
 
-from llmio import Agent, Message
+from openai import AsyncOpenAI, AsyncAzureOpenAI
+
+from llmio import Agent, models, types as T
+from llmio.clients import BaseClient, OpenAIClient, AzureOpenAIClient, GeminiClient
 
 from tests.utils import mocked_async_openai_replies
-from openai.types.chat.chat_completion_message import (
-    ChatCompletionMessage,
-    ChatCompletionMessageToolCall,
-)
-from openai.types.chat.chat_completion_message_tool_call import Function
 
 
-async def test_basics() -> None:
+def clients() -> Iterable[BaseClient | AsyncOpenAI]:
+    yield OpenAIClient(api_key="abc")
+    yield AzureOpenAIClient(
+        api_key="abc", endpoint="http://localhost:8000", api_version="2024.01.01"
+    )
+    yield GeminiClient(api_key="abc", base_url="http://localhost:8000")
+    yield AsyncOpenAI(api_key="abc")
+    yield AsyncAzureOpenAI(
+        api_key="abc", azure_endpoint="http://localhost:8000", api_version="2024.01.01"
+    )
+
+
+@pytest.mark.parametrize("client", clients())
+async def test_basics(client: BaseClient) -> None:
     agent = Agent(
         instruction="""
             You are a calculator.
 
             {var1} {var2}
         """,
-        client=openai.AsyncOpenAI(api_key="abc"),
+        client=client,
     )
 
     @agent.tool()
@@ -41,7 +53,7 @@ async def test_basics() -> None:
     inspect_prompt_called = False
 
     @agent.inspect_prompt
-    async def inspect_prompt(prompt: list[Message]) -> None:
+    async def inspect_prompt(prompt: list[T.Message]) -> None:
         nonlocal inspect_prompt_called
         inspect_prompt_called = True
         assert (
@@ -53,33 +65,33 @@ value1 value2"""
         )
 
     mocks = [
-        ChatCompletionMessage.construct(
+        models.ChatCompletionMessage.construct(
             content="Ok! I'll calculate the answer of (10 + 20) * 2",
             tool_calls=[
-                ChatCompletionMessageToolCall.construct(
+                models.ToolCall.construct(
                     id="add_1",
                     type="function",
-                    function=Function.construct(
+                    function=models.Function.construct(
                         name="add", arguments=json.dumps({"num1": 10, "num2": 20})
                     ),
                 ),
             ],
             role="assistant",
         ),
-        ChatCompletionMessage.construct(
+        models.ChatCompletionMessage.construct(
             content=None,
             role="assistant",
             tool_calls=[
-                ChatCompletionMessageToolCall.construct(
+                models.ToolCall.construct(
                     id="multiply_1",
                     type="function",
-                    function=Function.construct(
+                    function=models.Function.construct(
                         name="multiply", arguments=json.dumps({"num1": 30, "num2": 2})
                     ),
                 ),
             ],
         ),
-        ChatCompletionMessage.construct(
+        models.ChatCompletionMessage.construct(
             role="assistant",
             content="The answer is 60",
         ),
@@ -121,7 +133,7 @@ value1 value2"""
 async def test_parallel_tool_calls() -> None:
     agent = Agent(
         instruction="You are a calculator",
-        client=openai.AsyncOpenAI(api_key="abc"),
+        client=OpenAIClient(api_key="abc"),
     )
 
     @agent.tool
@@ -133,27 +145,27 @@ async def test_parallel_tool_calls() -> None:
         return num1 * num2
 
     mocks = [
-        ChatCompletionMessage.construct(
+        models.ChatCompletionMessage.construct(
             content="Ok! I'll calculate the answers to (10 + 20) and (3 * 9)",
             tool_calls=[
-                ChatCompletionMessageToolCall.construct(
+                models.ToolCall.construct(
                     id="add_1",
                     type="function",
-                    function=Function.construct(
+                    function=models.Function.construct(
                         name="add", arguments=json.dumps({"num1": 10, "num2": 20})
                     ),
                 ),
-                ChatCompletionMessageToolCall.construct(
+                models.ToolCall.construct(
                     id="multiply_1",
                     type="function",
-                    function=Function.construct(
+                    function=models.Function.construct(
                         name="multiply", arguments=json.dumps({"num1": 3, "num2": 9})
                     ),
                 ),
             ],
             role="assistant",
         ),
-        ChatCompletionMessage.construct(
+        models.ChatCompletionMessage.construct(
             role="assistant",
             content="The answer is 30 and 27",
         ),
