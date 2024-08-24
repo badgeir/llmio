@@ -27,6 +27,7 @@ pytest-asyncio = "^0.23.8"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
 [tool.pylint]
 max-line-length = 120
 extension-pkg-allow-list=[
@@ -37,7 +38,6 @@ disable = [
     "missing-class-docstring",
     "missing-function-docstring",
     "too-many-arguments",
-    "invalid-name",
     "too-many-locals",
     "too-few-public-methods",
     "too-many-instance-attributes",
