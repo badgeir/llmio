@@ -1,6 +1,6 @@
 
 # llmio
-## A Lightweight Python Library for LLM I/O 🎈
+## 🎈 A Lightweight Python Library for LLM I/O 🎈
 
 
 ![pylint](https://github.com/badgeir/llmio/actions/workflows/pylint.yml/badge.svg)
@@ -11,7 +11,7 @@
 [![versions](https://img.shields.io/pypi/pyversions/llmio.svg)](https://github.com/badgeir/llmio)
 [![Downloads](https://static.pepy.tech/badge/llmio/month)](https://pepy.tech/project/llmio)
 
-Welcome to **llmio**! If you're looking for a simple, efficient way to manage LLMs, you've come to the right place.
+Welcome to **llmio**! If you're looking for a simple, efficient way to build LLM-based agents, you've come to the right place.
 
 **llmio** is a lightweight Python library that leverages type annotations to make tool execution with OpenAI-compatible APIs effortless. Whether you're working with OpenAI, Azure OpenAI, Google Gemini, AWS Bedrock, or Huggingface TGI, llmio has you covered.
 
