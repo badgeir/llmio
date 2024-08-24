@@ -206,11 +206,11 @@ async def create_task(name: str = "My task", description: str | None = None) -> 
     return "Created task"
 ```
 
-### Supported parameter types 📋
+### Supported parameter types
 
 llmio supports the types that are supported by Pydantic. For more details, refer to [Pydantic's documentation](https://docs.pydantic.dev/latest/concepts/types).
 
-### Hooks 🔗
+### Hooks
 
 You can add hooks to receive callbacks with prompts and outputs. The names of the hooks are flexible as long as they are decorated appropriately.
 
