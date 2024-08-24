@@ -258,6 +258,34 @@ async def main() -> None:
     )
 ```
 
+### Dynamic instructions
+
+llmio allows you to inject dynamic content into your instructions using variable hooks. These hooks act as placeholders, filling in values at runtime.
+
+When an instruction contains a placeholder that matches the name of a variable hook, llmio will automatically replace it with the corresponding value returned by the hook. If a placeholder does not have a matching variable hook, a MissingVariable error will be raised.
+
+``` python
+agent = Agent(
+    instruction="""
+        You are a task manager for a user named {user_name}.
+        The current time is {current_time}.
+    """,
+    ...
+)
+
+@agent.variable
+def user_name(_context: User) -> str:
+    return _context.name
+
+@agent.variable
+async def current_time() -> datetime:
+    return datetime.now()
+
+# Example of formatted instruction:
+# "You are a task manager for a user named Alice.
+#  The current time is 2024-08-25 10:17:04.606621."
+```
+
 ### Batched execution
 
 Since the `Agent` class is stateless, you can safely execute multiple messages in parallel using `asyncio.gather`.
