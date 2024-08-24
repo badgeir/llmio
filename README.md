@@ -143,6 +143,8 @@ if __name__ == "__main__":
 
 For more examples, see `examples/`.
 
+For a notebook going throught how to create a simple AI task manager, see [examples/notebooks/simple_task_manager.ipynb](examples/notebooks/simple_task_manager.ipynb)`.
+
 
 ## Details
 
