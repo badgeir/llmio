@@ -1,15 +1,9 @@
 
 # llmio
+
+## This documentation is a work in progress
+
 ## 🎈 A Lightweight Python Library for LLM I/O
-
-
-![pylint](https://github.com/badgeir/llmio/actions/workflows/pylint.yml/badge.svg)
-![mypy](https://github.com/badgeir/llmio/actions/workflows/mypy.yml/badge.svg)
-![ruff](https://github.com/badgeir/llmio/actions/workflows/ruff.yml/badge.svg)
-![tests](https://github.com/badgeir/llmio/actions/workflows/test.yml/badge.svg)
-[![pypi](https://img.shields.io/pypi/v/llmio.svg)](https://pypi.python.org/pypi/llmio)
-[![versions](https://img.shields.io/pypi/pyversions/llmio.svg)](https://github.com/badgeir/llmio)
-[![Downloads](https://static.pepy.tech/badge/llmio/month)](https://pepy.tech/project/llmio)
 
 Welcome to **llmio**! If you're looking for a simple, efficient way to build LLM-based agents, you've come to the right place.
 
@@ -20,27 +14,6 @@ Welcome to **llmio**! If you're looking for a simple, efficient way to build LLM
 - **Lightweight** 🪶: Designed to integrate smoothly into your project without adding unnecessary bulk.
 - **Type Annotations** 🏷️: Easily define tools with Python's type annotations and let llmio handle the rest.
 - **Broad API Compatibility** 🌍: Seamlessly works with major APIs like OpenAI, Azure, Google Gemini, AWS, and Huggingface.
-
-## Overview
-
-1. [Getting started](#getting-started-🚀)
-2. [Examples](#examples)
-    - [A simple calculator example](#-a-simple-calculator-example)
-    - [More examples](#more-examples)
-3. [Details](#details-)
-    - [Tools](#tools)
-    - [Parameter descriptions](#parameter-descriptions)
-    - [Optional parameters](#optional-parameters)
-    - [Supported parameter types](#supported-parameter-types)
-    - [Hooks](#hooks)
-    - [Keeping track of context](#keeping-track-of-context)
-    - [Dynamic instructions](#dynamic-instructions)
-    - [Batched execution](#batched-execution)
-    - [A simple example of continuous interaction](#a-simple-example-of-continuous-interaction)
-    - [Handling uninterpretable tool calls](#handling-uninterpretable-tool-calls)
-    - [Strict tool mode](#strict-tool-mode)
-    - [Structured output](#structured-output)
-    - [Get involved](#get-involved-)
 
 ## Getting Started 🚀
 
