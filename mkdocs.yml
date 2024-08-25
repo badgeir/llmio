@@ -1,4 +1,4 @@
-site_name: My Docs
+site_name: llmio
 site_url: https://badgeir.github.io/llmio
 theme:
   name: material
