@@ -45,7 +45,7 @@ async def test_gather_tools() -> None:
     batch_size = 100
 
     agent = Agent(
-        instruction="instruction",
+        instruction="instruction for {user_name}",
         client=OpenAIClient(api_key="abc"),
         model="gpt-4o-mini",
     )
@@ -53,6 +53,10 @@ async def test_gather_tools() -> None:
     @dataclass
     class User:
         id: int
+
+        @property
+        def name(self) -> str:
+            return f"user{self.id}"
 
         def __hash__(self) -> int:
             return hash(self.id)
@@ -70,6 +74,10 @@ async def test_gather_tools() -> None:
         mul_called_with.add((num1, num2))
         return f"mul: {num1 * num2}"
 
+    @agent.variable
+    def user_name(_context: User) -> str:
+        return _context.name
+
     on_message_async_called_with = set()
     inspect_prompt_async_called_with = []
     inspect_output_async_called_with = []
@@ -80,7 +88,10 @@ async def test_gather_tools() -> None:
 
     @agent.inspect_prompt
     async def inspect_prompt_async(prompt: list[T.Message], _context: User) -> None:
-        inspect_prompt_async_called_with.append((prompt, User(id=_context.id)))
+        instruction = prompt[0]["content"]
+        assert prompt[0]["role"] == "system"
+        assert instruction == f"instruction for {_context.name}"
+        inspect_prompt_async_called_with.append(instruction)
 
     @agent.inspect_output
     async def inspect_output_async(message: T.Message, _context: User) -> None:
@@ -96,7 +107,10 @@ async def test_gather_tools() -> None:
 
     @agent.inspect_prompt
     def inspect_prompt_sync(prompt: list[T.Message], _context: User) -> None:
-        inspect_prompt_sync_called_with.append((prompt, User(id=_context.id)))
+        instruction = prompt[0]["content"]
+        assert prompt[0]["role"] == "system"
+        assert instruction == f"instruction for {_context.name}"
+        inspect_prompt_sync_called_with.append(instruction)
 
     @agent.inspect_output
     def inspect_output_sync(message: T.Message, _context: User) -> None:
@@ -192,6 +206,9 @@ async def test_gather_tools() -> None:
     } | {(f"Answer: {i + i} and {i * i}", User(id=i)) for i in range(batch_size)}
 
     assert mul_called_with == {(i, i) for i in range(batch_size)}
+    assert set(inspect_prompt_async_called_with) == {
+        f"instruction for user{i}" for i in range(batch_size)
+    }
     assert len(inspect_prompt_async_called_with) == batch_size * 2
     assert len(inspect_output_async_called_with) == batch_size * 2
 
@@ -200,5 +217,8 @@ async def test_gather_tools() -> None:
         for i in range(batch_size)
     } | {(f"Answer: {i + i} and {i * i}", User(id=i)) for i in range(batch_size)}
 
+    assert set(inspect_prompt_sync_called_with) == {
+        f"instruction for user{i}" for i in range(batch_size)
+    }
     assert len(inspect_prompt_sync_called_with) == batch_size * 2
     assert len(inspect_output_sync_called_with) == batch_size * 2

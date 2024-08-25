@@ -4,3 +4,7 @@ class LLMIOError(Exception):
 
 class BadToolCall(LLMIOError):
     pass
+
+
+class MissingVariable(LLMIOError):
+    pass

@@ -60,8 +60,6 @@ async def main() -> None:
     response = await agent.speak(
         "and how much is that times two?", history=response.history
     )
-    for message in response.messages:
-        print(message.message)
 
 
 if __name__ == "__main__":

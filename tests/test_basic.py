@@ -5,7 +5,7 @@ import pytest
 
 from openai import AsyncOpenAI, AsyncAzureOpenAI
 
-from llmio import Agent, models
+from llmio import Agent, models, types as T
 from llmio.clients import BaseClient, OpenAIClient, AzureOpenAIClient, GeminiClient
 
 from tests.utils import mocked_async_openai_replies
@@ -26,7 +26,11 @@ def clients() -> Iterable[BaseClient | AsyncOpenAI]:
 @pytest.mark.parametrize("client", clients())
 async def test_basics(client: BaseClient) -> None:
     agent = Agent(
-        instruction="You are a calculator",
+        instruction="""
+            You are a calculator.
+
+            {var1} {var2}
+        """,
         client=client,
     )
 
@@ -37,6 +41,28 @@ async def test_basics(client: BaseClient) -> None:
     @agent.tool(strict=True)
     async def multiply(num1: float, num2: float) -> float:
         return num1 * num2
+
+    @agent.variable
+    def var1() -> str:
+        return "value1"
+
+    @agent.variable
+    async def var2() -> str:
+        return "value2"
+
+    inspect_prompt_called = False
+
+    @agent.inspect_prompt
+    async def inspect_prompt(prompt: list[T.Message]) -> None:
+        nonlocal inspect_prompt_called
+        inspect_prompt_called = True
+        assert (
+            prompt[0]["content"]
+            == """\
+You are a calculator.
+
+value1 value2"""
+        )
 
     mocks = [
         models.ChatCompletionMessage.construct(
@@ -72,6 +98,7 @@ async def test_basics(client: BaseClient) -> None:
     ]
     with mocked_async_openai_replies(mocks):
         response = await agent.speak("What is (10 + 20) * 2?")
+
     assert response.messages == [mocks[0].content, mocks[2].content]
     assert response.history == [
         {
@@ -92,6 +119,15 @@ async def test_basics(client: BaseClient) -> None:
         },
         agent._parse_completion(mocks[2]),
     ]
+
+    assert inspect_prompt_called
+    assert (
+        await agent._get_instruction(context=None)
+        == """\
+You are a calculator.
+
+value1 value2"""
+    )
 
 
 async def test_parallel_tool_calls() -> None:
