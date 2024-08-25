@@ -52,7 +52,7 @@ pip install llmio
 
 **Set Up Your Agent**: Start building with a few lines of code:
 
-``` python
+```python
 import asyncio
 from llmio import Agent, OpenAIClient
 
@@ -71,7 +71,7 @@ agent = Agent(
 
 Let’s walk through a basic example where we create a simple calculator using llmio. This calculator can add and multiply numbers, leveraging AI to handle the operations. It’s a straightforward way to see how llmio can manage tasks while keeping the code clean and easy to follow.
 
-``` python
+```python
 import asyncio
 import os
 
@@ -153,7 +153,7 @@ For a notebook going throught how to create a simple AI task manager, see [examp
 
 Under the hood, llmio uses Python's type annotations to automatically generate function schemas that are compatible with OpenAI tools. It also leverages Pydantic models to validate the input types of arguments passed by the language model, ensuring robust and error-free execution.
 
-``` python
+```python
 @agent.tool
 async def add(num1: float, num2: float) -> float:
     """
@@ -183,7 +183,7 @@ Tools:
 
 You can use pydantic.Field to describe parameters in detail. These descriptions will be included in the tool schema, guiding the language model to understand the tool's requirements better.
 
-``` python
+```python
 @agent.tool
 async def book_flight(
     destination: str = Field(..., description="The destination airport"),
@@ -200,7 +200,7 @@ async def book_flight(
 
 llmio supports optional parameters seamlessly.
 
-``` python
+```python
 @agent.tool
 async def create_task(name: str = "My task", description: str | None = None) -> str:
     return "Created task"
@@ -214,7 +214,7 @@ llmio supports the types that are supported by Pydantic. For more details, refer
 
 You can add hooks to receive callbacks with prompts and outputs. The names of the hooks are flexible as long as they are decorated appropriately.
 
-``` python
+```python
 @agent.on_message
 async def on_message(message: str):
     # on_message will be called with new messages from the model
@@ -236,7 +236,7 @@ async def inspect_output(output: llmio.Message):
 
 Pass an object of any type to the agent to maintain context across interactions. This context is available to tools and hooks via the special `_context` argument but is not passed to the language model itself.
 
-``` python
+```python
 @dataclass
 class User:
     name: str
@@ -265,7 +265,7 @@ async def main() -> None:
 
 When an instruction contains a placeholder that matches the name of a variable hook, `llmio` will automatically replace it with the corresponding value returned by the hook. If a placeholder does not have a matching variable hook, a `MissingVariable` error will be raised.
 
-``` python
+```python
 agent = Agent(
     instruction="""
         You are a task manager for a user named {user_name}.
@@ -291,7 +291,7 @@ async def current_time() -> datetime:
 
 Since the `Agent` class is stateless, you can safely execute multiple messages in parallel using `asyncio.gather`.
 
-``` python
+```python
 async def main() -> None:
     await asyncio.gather(
         agent.speak("Create a task named 'Buy milk'", history=[], _context=User(name="Alice")),
@@ -301,7 +301,7 @@ async def main() -> None:
 
 ### A simple example of continuous interaction
 
-``` python
+```python
 @agent.on_message
 async def print_message(message: str):
     print(message)
@@ -318,7 +318,7 @@ async def main() -> None:
 Alternatively, use the messages returned by the agent:
 
 
-``` python
+```python
 async def main() -> None:
     history = []
     
@@ -333,7 +333,7 @@ async def main() -> None:
 
 `llmio` allows you to handle uninterpretable tool calls gracefully. By default, the agent will raise an exception if it encounters an unrecognized tool or invalid arguments. However, you can configure it to provide feedback to the model instead.
 
-``` python
+```python
 # Raises an exception for unrecognized tools or invalid arguments
 agent = Agent(
     client=OpenAIClient(api_key=os.environ["OPENAI_TOKEN"]),
@@ -353,7 +353,7 @@ agent = Agent(
 
 OpenAI supports a strict mode for tools, ensuring that only valid arguments are passed according to the function schema. Enable this by setting `strict=True` in the tool decorator.
 
-``` python
+```python
 @agent.tool(strict=True)
 async def add_task(name: str, description: str | None = None) -> str:
     ...
@@ -363,7 +363,7 @@ async def add_task(name: str, description: str | None = None) -> str:
 
 `llmio` can return structured output from the messages it generates, ideal for more advanced use cases. This feature is currently supported by OpenAI and Azure OpenAI.
 
-``` python
+```python
 import asyncio
 from pprint import pprint
 from typing import Literal
