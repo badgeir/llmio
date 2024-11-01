@@ -1,15 +1,17 @@
-from typing import Any, Callable, Dict, Mapping, Tuple
+from typing import Any, Callable, Dict, Mapping, Tuple, get_type_hints
 from inspect import Parameter, signature
 
 from pydantic import create_model, BaseModel
-from pydantic.typing import get_all_type_hints
-from pydantic.utils import to_camel
+
+
+def to_camel(string: str) -> str:
+    return "".join(word.capitalize() for word in string.split("_"))
 
 
 def model_from_function(function: Callable) -> type[BaseModel]:
     parameters: Mapping[str, Parameter] = signature(function).parameters
+    type_hints = get_type_hints(function, include_extras=True)
 
-    type_hints = get_all_type_hints(function)
     fields: Dict[str, Tuple[Any, Any]] = {}
     for name, param in parameters.items():
         if name == "_context":
@@ -28,11 +30,5 @@ def model_from_function(function: Callable) -> type[BaseModel]:
                 "Unable to parse function signature. Only named arguments supported."
             )
 
-    class Config:
-        @staticmethod
-        def schema_extra(schema: Dict[str, Any]) -> None:
-            schema.pop("title")
-            for prop in schema.get("properties", {}).values():
-                prop.pop("title", None)
-
-    return create_model(to_camel(function.__name__), __config__=Config, **fields)  # type: ignore
+    model = create_model(to_camel(function.__name__), **fields)  # type: ignore
+    return model

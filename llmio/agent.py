@@ -81,7 +81,12 @@ class _Tool:
         """
         Returns the tool schema that is sent to the OpenAI API.
         """
-        schema = self.params.schema()
+        schema = self.params.model_json_schema()
+
+        schema.pop("title", None)
+        for prop in schema.get("properties", {}).values():
+            prop.pop("title", None)
+
         if self.strict:
             schema["additionalProperties"] = False
         return T.FunctionDefinition(
@@ -537,7 +542,7 @@ class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):
 
     @property
     def response_format(self) -> dict[str, Any]:
-        schema = self._response_format.schema()
+        schema = self._response_format.model_json_schema()
         schema["additionalProperties"] = False
         return {
             "type": "json_schema",
