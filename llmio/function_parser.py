@@ -30,11 +30,5 @@ def model_from_function(function: Callable) -> type[BaseModel]:
                 "Unable to parse function signature. Only named arguments supported."
             )
 
-    class Config:
-        @staticmethod
-        def json_schema_extra(schema: Dict[str, Any]) -> None:
-            schema.pop("title", None)
-            for prop in schema.get("properties", {}).values():
-                prop.pop("title", None)
-
-    return create_model(to_camel(function.__name__), __config__=Config, **fields)  # type: ignore
+    model = create_model(to_camel(function.__name__), **fields)  # type: ignore
+    return model
