@@ -62,7 +62,7 @@ async def test_graceful_handling() -> None:
         {
             "role": "tool",
             "tool_call_id": "add_1",
-            "content": "The argument validation failed for the function call to add: 1 validation error for Add\nnum2\n  field required (type=value_error.missing)",
+            "content": "The argument validation failed for the function call to add: 1 validation error for Add\nnum2\n  Field required [type=missing, input_value={'num1': 10, 'num3': 20}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.9/v/missing",
         },
         agent._parse_completion(mocks[1]),
         {
