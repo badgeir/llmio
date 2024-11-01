@@ -12,7 +12,7 @@ documentation = "https://github.com/badgeir/llmio"
 [tool.poetry.dependencies]
 python = "^3.10"
 openai = "^1.41.0"
-pydantic = "1.10.13"
+pydantic = "^2.0.0"
 typing-extensions = "^4.12.2"
 
 
@@ -41,6 +41,7 @@ disable = [
     "too-many-locals",
     "too-few-public-methods",
     "too-many-instance-attributes",
+    "too-many-positional-arguments",
 ]
 
 [tool.ruff]

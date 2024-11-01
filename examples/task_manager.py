@@ -5,6 +5,7 @@ examples/notebooks/simple_task_manager.ipynb
 
 import asyncio
 import os
+from pprint import pprint
 from typing import Literal
 
 from pydantic import BaseModel
@@ -83,6 +84,8 @@ async def main() -> None:
 
         for message in response.messages:
             print(f"** Bot: {message}")
+            print("\nCurrent tasks:")
+            pprint(TASKS)
 
 
 if __name__ == "__main__":
