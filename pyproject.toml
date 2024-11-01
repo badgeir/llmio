@@ -41,6 +41,7 @@ disable = [
     "too-many-locals",
     "too-few-public-methods",
     "too-many-instance-attributes",
+    "too-many-positional-arguments",
 ]
 
 [tool.ruff]
