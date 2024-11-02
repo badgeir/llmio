@@ -1,5 +1,6 @@
 import json
 from typing import Iterable
+from unittest.mock import call
 
 import pytest
 
@@ -96,8 +97,139 @@ value1 value2"""
             content="The answer is 60",
         ),
     ]
-    with mocked_async_openai_replies(mocks):
+    with mocked_async_openai_replies(mocks) as mocked:
         response = await agent.speak("What is (10 + 20) * 2?")
+        mocked.assert_has_calls(
+            [
+                call(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are a calculator.\n\nvalue1 value2",
+                        },
+                        {
+                            "role": "user",
+                            "content": "What is (10 + 20) * 2?",
+                        },
+                    ],
+                    tools=agent._tool_definitions,
+                    response_format=None,
+                ),
+                call(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are a calculator.\n\nvalue1 value2",
+                        },
+                        {
+                            "role": "user",
+                            "content": "What is (10 + 20) * 2?",
+                        },
+                        {
+                            "role": "assistant",
+                            "content": "Ok! I'll calculate the answer of (10 + 20) * 2",
+                            "tool_calls": [
+                                {
+                                    "id": "add_1",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "add",
+                                        "arguments": '{"num1": 10, "num2": 20}',
+                                    },
+                                }
+                            ],
+                        },
+                        {"role": "tool", "content": "30.0", "tool_call_id": "add_1"},
+                    ],
+                    tools=agent._tool_definitions,
+                    response_format=None,
+                ),
+                call(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are a calculator.\n\nvalue1 value2",
+                        },
+                        {
+                            "role": "user",
+                            "content": "What is (10 + 20) * 2?",
+                        },
+                        {
+                            "role": "assistant",
+                            "content": "Ok! I'll calculate the answer of (10 + 20) * 2",
+                            "tool_calls": [
+                                {
+                                    "id": "add_1",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "add",
+                                        "arguments": '{"num1": 10, "num2": 20}',
+                                    },
+                                }
+                            ],
+                        },
+                        {"role": "tool", "content": "30.0", "tool_call_id": "add_1"},
+                        {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "id": "multiply_1",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "multiply",
+                                        "arguments": '{"num1": 30, "num2": 2}',
+                                    },
+                                }
+                            ],
+                        },
+                        {
+                            "role": "tool",
+                            "content": "60.0",
+                            "tool_call_id": "multiply_1",
+                        },
+                    ],
+                    tools=[
+                        {
+                            "function": {
+                                "name": "add",
+                                "description": "",
+                                "parameters": {
+                                    "properties": {
+                                        "num1": {"type": "number"},
+                                        "num2": {"type": "number"},
+                                    },
+                                    "required": ["num1", "num2"],
+                                    "type": "object",
+                                },
+                            },
+                            "type": "function",
+                        },
+                        {
+                            "function": {
+                                "name": "multiply",
+                                "description": "",
+                                "parameters": {
+                                    "properties": {
+                                        "num1": {"type": "number"},
+                                        "num2": {"type": "number"},
+                                    },
+                                    "required": ["num1", "num2"],
+                                    "type": "object",
+                                    "additionalProperties": False,
+                                },
+                                "strict": True,
+                            },
+                            "type": "function",
+                        },
+                    ],
+                    response_format=None,
+                ),
+            ]
+        )
 
     assert response.messages == [mocks[0].content, mocks[2].content]
     assert response.history == [

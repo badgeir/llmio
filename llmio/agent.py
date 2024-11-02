@@ -64,9 +64,9 @@ class _Tool:
             kwargs[_CONTEXT_ARG_NAME] = context
 
         if iscoroutinefunction(self.function):
-            result = await self.function(**params.dict(), **kwargs)
+            result = await self.function(**params.model_dump(), **kwargs)
         else:
-            result = self.function(**params.dict(), **kwargs)
+            result = self.function(**params.model_dump(), **kwargs)
 
         return str(result)
 
@@ -74,7 +74,7 @@ class _Tool:
         """
         Parses the arguments received from the OpenAI API using the Pydantic model.
         """
-        return self.params.parse_raw(args)
+        return self.params.model_validate_json(args)
 
     @property
     def function_definition(self) -> T.FunctionDefinition:
@@ -89,12 +89,15 @@ class _Tool:
 
         if self.strict:
             schema["additionalProperties"] = False
-        return T.FunctionDefinition(
+        definition = T.FunctionDefinition(
             name=self.name,
             description=self.description,
             parameters=schema,
-            strict=self.strict,
         )
+        if self.strict:
+            definition["strict"] = True
+
+        return definition
 
 
 _ResponseFormatT = TypeVar("_ResponseFormatT", bound=pydantic.BaseModel)
@@ -533,7 +536,8 @@ class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):
         assert self._response_format is not None
         response = await self._speak(message, history=history, _context=_context)
         parsed_messages = [
-            self._response_format.parse_raw(message) for message in response.messages
+            self._response_format.model_validate_json(message)
+            for message in response.messages
         ]
         return StructuredAgentResponse(
             messages=parsed_messages,
@@ -554,4 +558,4 @@ class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):
         }
 
     def _parse_message_inspector_content(self, message: str) -> _ResponseFormatT:
-        return self._response_format.parse_raw(message)
+        return self._response_format.model_validate_json(message)

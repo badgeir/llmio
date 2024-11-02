@@ -45,8 +45,7 @@ async def test_schema() -> None:
                'parameters': {'properties': {'num1': {'type': 'number'},
                                              'num2': {'type': 'number'}},
                               'required': ['num1', 'num2'],
-                              'type': 'object'},
-               'strict': False}
+                              'type': 'object'}}
 
           - multiply
             Schema:
@@ -86,7 +85,6 @@ async def test_schema() -> None:
                     ],
                     "type": "object",
                 },
-                "strict": False,
             },
             "type": "function",
         },
