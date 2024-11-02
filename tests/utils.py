@@ -1,6 +1,6 @@
 import contextlib
-from typing import Any
-from unittest.mock import patch
+from typing import Any, Iterator
+from unittest.mock import patch, MagicMock
 
 from llmio import types as T, models
 
@@ -8,7 +8,7 @@ from llmio import types as T, models
 @contextlib.contextmanager
 def mocked_async_openai_replies(
     replies: list[models.ChatCompletionMessage],
-):
+) -> Iterator[MagicMock]:
     with patch(
         "llmio.clients.BaseClient.get_chat_completion",
         side_effect=[
@@ -17,14 +17,14 @@ def mocked_async_openai_replies(
             )
             for reply in replies
         ],
-    ):
-        yield replies
+    ) as patched:
+        yield patched
 
 
 @contextlib.contextmanager
 def mocked_async_openai_lookup(
     replies: dict[str, models.ChatCompletionMessage],
-):
+) -> Iterator[MagicMock]:
     def mock_function(
         model: str,
         messages: list[T.Message],
@@ -46,5 +46,5 @@ def mocked_async_openai_lookup(
     with patch(
         "llmio.clients.BaseClient.get_chat_completion",
         side_effect=mock_function,
-    ):
-        yield replies
+    ) as patched:
+        yield patched
