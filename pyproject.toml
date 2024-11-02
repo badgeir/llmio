@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "llmio"
-version = "0.10.0"
+version = "0.10.1"
 description = "Easily connect large language models into your application"
 authors = ["Peter Leupi"]
 license = "MIT"
