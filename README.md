@@ -390,7 +390,7 @@ agent = StructuredAgent(
 @agent.on_message
 async def print_message(message: OutputFormat):
     print(type(message))
-    pprint(message.dict())
+    pprint(message.model_dump())
 
 
 async def main() -> None:
