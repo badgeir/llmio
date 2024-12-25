@@ -151,6 +151,7 @@ class BaseAgent:
         self._prompt_inspectors: list[Callable] = []
         self._output_inspectors: list[Callable] = []
         self._message_callbacks: list[Callable] = []
+        self._stream_callbacks: list[Callable] = []
 
     async def _execute_variable(
         self, variable_name: str, context: _Context | None
@@ -259,6 +260,21 @@ class BaseAgent:
         self._message_callbacks.append(function)
         return function
 
+    def on_stream(self, function: Callable) -> Callable:
+        """
+        Decorator to define a message callback.
+        """
+        params = set(signature(function).parameters.keys())
+        if params not in [
+            {"delta"},
+            {_CONTEXT_ARG_NAME, "delta"},
+        ]:
+            raise ValueError(
+                "The message inspector must accept only 'delta' or '_context, delta' as arguments."
+            )
+        self._stream_callbacks.append(function)
+        return function
+
     async def _run_prompt_inspectors(
         self, prompt: list[T.Message], context: _Context | None
     ) -> None:
@@ -304,6 +320,24 @@ class BaseAgent:
         for callback in self._message_callbacks:
             kwargs: dict[str, str | _Context | None] = {
                 "message": self._parse_message_inspector_content(content),
+            }
+            if _CONTEXT_ARG_NAME in signature(callback).parameters:
+                kwargs[_CONTEXT_ARG_NAME] = context
+
+            if iscoroutinefunction(callback):
+                await callback(**kwargs)
+            else:
+                callback(**kwargs)
+
+    async def _run_stream_inspectors(
+        self, delta: str, context: _Context | None
+    ) -> None:
+        """
+        Runs all message callbacks with the generated message content.
+        """
+        for callback in self._stream_callbacks:
+            kwargs: dict[str, str | _Context | None] = {
+                "delta": delta,
             }
             if _CONTEXT_ARG_NAME in signature(callback).parameters:
                 kwargs[_CONTEXT_ARG_NAME] = context
@@ -366,6 +400,21 @@ class BaseAgent:
             response_format=self.response_format,
         )
 
+    async def _get_completion_stream(
+        self,
+        messages: list[T.Message],
+    ) -> AsyncIterator[models.ChatCompletionChunk]:
+        """
+        Sends the prompt to the OpenAI API and returns the completion.
+        """
+        async for chunk in self._client.stream_chat_completion(
+            model=self._model,
+            messages=messages,
+            tools=self._tool_definitions,
+            response_format=self.response_format,
+        ):
+            yield chunk
+
     def _create_user_message(self, message: str) -> T.UserMessage:
         return T.UserMessage(
             role="user",
@@ -390,6 +439,7 @@ class BaseAgent:
         message: str,
         history: list[T.Message] | None = None,
         _context: _Context | None = None,
+        stream: bool = False,
     ) -> AgentResponse:
         """
         A full interaction loop with the agent.
@@ -403,7 +453,9 @@ class BaseAgent:
 
         new_messages: list[str] = []
 
-        async for message, history in self._iterate(history=history, context=_context):
+        async for message, history in self._iterate(
+            history=history, context=_context, stream=stream
+        ):
             new_messages.append(message)
         return AgentResponse(messages=new_messages, history=history)
 
@@ -413,11 +465,50 @@ class BaseAgent:
                 return tool
         raise ValueError(f"No tool with the name '{name}' found.")
 
+    def _parse_chunk(
+        self,
+        accumulated: models.ChatCompletionMessage,
+        chunk: models.ChatCompletionChunk,
+    ) -> tuple[str | None, models.ChatCompletionMessage]:
+        if not chunk.choices:
+            return None, accumulated
+        delta = chunk.choices[0].delta
+
+        if delta.tool_calls:
+            for tool_call_delta in delta.tool_calls:
+                assert tool_call_delta.function is not None
+                if tool_call_delta.id is not None:
+                    assert tool_call_delta.function is not None
+                    assert tool_call_delta.function.name is not None
+                    accumulated.tool_calls = [
+                        models.ToolCall.construct(
+                            id=tool_call_delta.id,
+                            type="function",
+                            function=models.Function.construct(
+                                name=tool_call_delta.function.name,
+                                arguments=tool_call_delta.function.arguments or "",
+                            ),
+                        )
+                    ]
+                elif tool_call_delta.function.arguments is not None:
+                    assert tool_call_delta.function
+                    assert accumulated.tool_calls is not None
+                    current_function = accumulated.tool_calls[-1].function
+                    assert current_function is not None
+                    current_function.arguments += tool_call_delta.function.arguments
+        delta_content = None
+        if delta.content:
+            delta_content = delta.content or ""
+            accumulated.content = accumulated.content or ""
+            accumulated.content += delta_content
+        return delta_content, accumulated
+
     async def _iterate(
         self,
         history: list[T.Message],
         context: _Context | None,
         system_message: T.SystemMessage | None = None,
+        stream: bool = False,
     ) -> AsyncIterator[tuple[str, list[T.Message]]]:
         """
         The main loop that sends the prompt to the OpenAI API and processes the response.
@@ -429,10 +520,25 @@ class BaseAgent:
         ]
         await self._run_prompt_inspectors(prompt, context)
 
-        completion = await self._get_completion(
-            messages=prompt,
-        )
-        generated_message = completion.choices[0].message
+        if stream:
+            generated_message = models.ChatCompletionMessage.construct(
+                role="assistant",
+                content="",
+            )
+            async for chunk in self._get_completion_stream(
+                messages=prompt,
+            ):
+                delta_content, generated_message = self._parse_chunk(
+                    generated_message, chunk
+                )
+                if delta_content:
+                    await self._run_stream_inspectors(delta_content, context=context)
+
+        else:
+            completion = await self._get_completion(
+                messages=prompt,
+            )
+            generated_message = completion.choices[0].message
         parsed_response = self._parse_completion(generated_message)
         await self._run_output_inspectors(parsed_response, context)
 
@@ -496,6 +602,7 @@ class BaseAgent:
             history=history,
             context=context,
             system_message=system_message,
+            stream=stream,
         ):
             yield ans, hist
 
@@ -506,8 +613,11 @@ class Agent(BaseAgent):
         message: str,
         history: list[T.Message] | None = None,
         _context: _Context | None = None,
+        stream: bool = False,
     ) -> AgentResponse:
-        return await self._speak(message, history=history, _context=_context)
+        return await self._speak(
+            message, history=history, _context=_context, stream=stream
+        )
 
 
 class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):

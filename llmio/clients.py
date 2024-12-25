@@ -1,6 +1,8 @@
+from collections.abc import AsyncIterator
 from typing import Any
 
-from openai import AsyncOpenAI, AsyncAzureOpenAI
+from openai import AsyncOpenAI, AsyncAzureOpenAI, AsyncStream
+from llmio.models import ChatCompletionChunk
 
 from llmio import types as T, models
 
@@ -26,6 +28,30 @@ class BaseClient:
             messages=messages,
             **kwargs,
         )
+
+    async def stream_chat_completion(
+        self,
+        model: str,
+        messages: list[T.Message],
+        tools: list[T.Tool],
+        response_format: dict[str, Any] | None,
+    ) -> AsyncIterator[ChatCompletionChunk]:
+        kwargs: dict[str, Any] = {}
+        if response_format:
+            kwargs["response_format"] = response_format
+        if tools:
+            kwargs["tools"] = tools
+        stream: AsyncStream[ChatCompletionChunk] = (
+            await self._client.chat.completions.create(
+                model=model,
+                messages=messages,
+                stream=True,
+                **kwargs,
+            )
+        )
+        async for chunk in stream:
+            assert isinstance(chunk, ChatCompletionChunk)
+            yield chunk
 
 
 class OpenAIClient(BaseClient):
