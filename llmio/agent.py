@@ -9,6 +9,7 @@ import re
 from typing_extensions import assert_never
 import pydantic
 from openai.types.shared_params import ResponseFormatJSONSchema
+from openai.lib._parsing import type_to_response_format_param
 
 from llmio import function_parser, errors, types as T, models
 from llmio.clients import BaseClient, AsyncOpenAI
@@ -657,8 +658,6 @@ class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):
 
     @property
     def response_format(self) -> ResponseFormatJSONSchema:
-        from openai.lib._parsing import type_to_response_format_param  # noqa
-
         schema: ResponseFormatJSONSchema = type_to_response_format_param(  # type: ignore
             self._response_format
         )
