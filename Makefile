@@ -4,6 +4,9 @@ test:
 format:
 	black .
 
+fix:
+	ruff check . --fix
+
 check:
 	ruff check . && python -m mypy.dmypy check . && black . --check
 
