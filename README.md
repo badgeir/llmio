@@ -406,6 +406,22 @@ if __name__ == "__main__":
 #  'detected_sentiment': 'positive'}
 ```
 
+### Streaming output
+
+`llmio` supports streaming output from the model, using the `on_stream` hook.
+
+``` python
+agent = Agent(...)
+
+@agent.on_stream
+def on_stream(delta: str) -> None:
+    sys.stdout.write(delta)
+    sys.stdout.flush()
+
+async def main() -> None:
+    response = await agent.speak("What is the meaning of life?", stream=True)
+```
+
 ## Get involved 🎉
 
 Your feedback, ideas, and contributions are welcome! Feel free to open an issue, submit a pull request, or start a discussion to help make `llmio` even better.
