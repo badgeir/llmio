@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from openai import AsyncOpenAI, AsyncAzureOpenAI, AsyncStream
+from openai.types.shared_params import ResponseFormatJSONSchema
 from llmio.models import ChatCompletionChunk
 
 from llmio import types as T, models
@@ -16,7 +17,7 @@ class BaseClient:
         model: str,
         messages: list[T.Message],
         tools: list[T.Tool],
-        response_format: dict[str, Any] | None,
+        response_format: ResponseFormatJSONSchema | None,
     ) -> models.ChatCompletion:
         kwargs: dict[str, Any] = {}
         if response_format:
@@ -34,7 +35,7 @@ class BaseClient:
         model: str,
         messages: list[T.Message],
         tools: list[T.Tool],
-        response_format: dict[str, Any] | None,
+        response_format: ResponseFormatJSONSchema | None,
     ) -> AsyncIterator[ChatCompletionChunk]:
         kwargs: dict[str, Any] = {}
         if response_format:
