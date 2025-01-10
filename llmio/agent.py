@@ -8,6 +8,7 @@ import re
 
 from typing_extensions import assert_never
 import pydantic
+from openai.types.shared_params import ResponseFormatJSONSchema
 
 from llmio import function_parser, errors, types as T, models
 from llmio.clients import BaseClient, AsyncOpenAI
@@ -383,7 +384,7 @@ class BaseAgent:
         ]
 
     @property
-    def response_format(self) -> dict[str, Any] | None:
+    def response_format(self) -> ResponseFormatJSONSchema | None:
         return None
 
     async def _get_completion(
@@ -655,17 +656,13 @@ class StructuredAgent(BaseAgent, Generic[_ResponseFormatT]):
         )
 
     @property
-    def response_format(self) -> dict[str, Any]:
-        schema = self._response_format.model_json_schema()
-        schema["additionalProperties"] = False
-        return {
-            "type": "json_schema",
-            "json_schema": {
-                "schema": schema,
-                "name": self._response_format.__name__,
-                "strict": True,
-            },
-        }
+    def response_format(self) -> ResponseFormatJSONSchema:
+        from openai.lib._parsing import type_to_response_format_param  # noqa
+
+        schema: ResponseFormatJSONSchema = type_to_response_format_param(  # type: ignore
+            self._response_format
+        )
+        return schema
 
     def _parse_message_inspector_content(self, message: str) -> _ResponseFormatT:
         return self._response_format.model_validate_json(message)
