@@ -1,4 +1,4 @@
-name: Black
+name: Ruff format
 
 on: push
 
@@ -12,4 +12,4 @@ jobs:
       with:
         python-version: '3.10'
     - run: uv sync --group dev
-    - run: uv run python -m black . --check
+    - run: uv run ruff format --check
