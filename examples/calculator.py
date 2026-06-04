@@ -2,7 +2,8 @@ import asyncio
 import os
 
 from pydantic import BaseModel
-from llmio import StructuredAgent, OpenAIClient
+
+from llmio import OpenAIClient, StructuredAgent
 
 
 class ResponseFormat(BaseModel):

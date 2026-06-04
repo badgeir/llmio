@@ -1,18 +1,15 @@
 test:
 	pytest tests -l -vv
 
-format:
-	black .
-
 fix:
-	ruff check . --fix
+	ruff check --fix && ruff format
 
 check:
-	ruff check . && python -m mypy.dmypy check . && black . --check
+	ruff check . && ruff format --check && python -m mypy.dmypy check .
 
 check-pylint:
 	pylint llmio examples
 
 requirements:
-	poetry export > requirements.txt
-	poetry export --only dev > requirements-dev.txt
+	uv export --no-dev > requirements.txt
+	uv export --only-group dev > requirements-dev.txt

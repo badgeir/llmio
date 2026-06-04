@@ -3,12 +3,11 @@ from typing import Iterable
 from unittest.mock import call
 
 import pytest
+from openai import AsyncAzureOpenAI, AsyncOpenAI
 
-from openai import AsyncOpenAI, AsyncAzureOpenAI
-
-from llmio import Agent, models, types as T
-from llmio.clients import BaseClient, OpenAIClient, AzureOpenAIClient, GeminiClient
-
+from llmio import Agent, models
+from llmio import types as T
+from llmio.clients import AzureOpenAIClient, BaseClient, GeminiClient, OpenAIClient
 from tests.utils import mocked_async_openai_replies
 
 

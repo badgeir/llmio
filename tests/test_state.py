@@ -2,8 +2,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 
-from llmio import Agent, models, OpenAIClient
-
+from llmio import Agent, OpenAIClient, models
 from tests.utils import mocked_async_openai_replies
 
 

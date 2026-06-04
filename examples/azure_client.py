@@ -2,7 +2,6 @@ import asyncio
 
 from llmio import Agent, AzureOpenAIClient
 
-
 agent = Agent(
     instruction="""
         You are a calculating agent running in Azure.

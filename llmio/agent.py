@@ -1,19 +1,19 @@
 import asyncio
 import pprint
-from typing import Callable, Generic, Type, Any, AsyncIterator, TypeVar
-from dataclasses import dataclass
-import textwrap
-from inspect import signature, iscoroutinefunction
 import re
+import textwrap
+from dataclasses import dataclass
+from inspect import iscoroutinefunction, signature
+from typing import Any, AsyncIterator, Callable, Generic, Type, TypeVar
 
-from typing_extensions import assert_never
 import pydantic
-from openai.types.shared_params import ResponseFormatJSONSchema
 from openai.lib._parsing import type_to_response_format_param
+from openai.types.shared_params import ResponseFormatJSONSchema
+from typing_extensions import assert_never
 
-from llmio import function_parser, errors, types as T, models
-from llmio.clients import BaseClient, AsyncOpenAI
-
+from llmio import errors, function_parser, models
+from llmio import types as T
+from llmio.clients import AsyncOpenAI, BaseClient
 
 _Context = TypeVar("_Context")
 
@@ -371,6 +371,7 @@ class BaseAgent:
                     ),
                 )
                 for tool_call in completion.tool_calls
+                if tool_call.type == "function"
             ]
         return result
 
@@ -495,7 +496,9 @@ class BaseAgent:
                 elif tool_call_delta.function.arguments is not None:
                     assert tool_call_delta.function
                     assert accumulated.tool_calls is not None
-                    current_function = accumulated.tool_calls[-1].function
+                    current_tool_call = accumulated.tool_calls[-1]
+                    assert current_tool_call.type == "function"
+                    current_function = current_tool_call.function
                     assert current_function is not None
                     current_function.arguments += tool_call_delta.function.arguments
         delta_content = None
@@ -556,6 +559,7 @@ class BaseAgent:
         awaitables = []
         awaited_tool_calls = []
         for tool_call in generated_message.tool_calls:
+            assert tool_call.type == "function"
             try:
                 tool = self._get_tool_by_name(tool_call.function.name)
                 params = tool.parse_args(tool_call.function.arguments)

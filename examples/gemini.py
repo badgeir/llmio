@@ -16,7 +16,6 @@ import os
 
 from llmio import Agent, GeminiClient
 
-
 # Available locations:
 # https://cloud.google.com/gemini/docs/locations
 LOCATION = "your_gemini_location"  # e.g. "europe-west1"

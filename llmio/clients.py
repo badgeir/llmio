@@ -1,11 +1,12 @@
 from collections.abc import AsyncIterator
 from typing import Any
 
-from openai import AsyncOpenAI, AsyncAzureOpenAI, AsyncStream
+from openai import AsyncAzureOpenAI, AsyncOpenAI, AsyncStream
 from openai.types.shared_params import ResponseFormatJSONSchema
-from llmio.models import ChatCompletionChunk
 
-from llmio import types as T, models
+from llmio import models
+from llmio import types as T
+from llmio.models import ChatCompletionChunk
 
 
 class BaseClient:
@@ -42,13 +43,13 @@ class BaseClient:
             kwargs["response_format"] = response_format
         if tools:
             kwargs["tools"] = tools
-        stream: AsyncStream[ChatCompletionChunk] = (
-            await self._client.chat.completions.create(
-                model=model,
-                messages=messages,
-                stream=True,
-                **kwargs,
-            )
+        stream: AsyncStream[
+            ChatCompletionChunk
+        ] = await self._client.chat.completions.create(
+            model=model,
+            messages=messages,
+            stream=True,
+            **kwargs,
         )
         async for chunk in stream:
             assert isinstance(chunk, ChatCompletionChunk)
