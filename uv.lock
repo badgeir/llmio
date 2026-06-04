@@ -8,7 +8,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-05-21T21:40:39.582663625Z"
+exclude-newer = "2026-05-21T21:48:18.645994901Z"
 exclude-newer-span = "P2W"
 
 [[package]]
@@ -396,7 +396,7 @@ wheels = [
 
 [[package]]
 name = "llmio"
-version = "0.10.4"
+version = "0.11.0"
 source = { editable = "." }
 dependencies = [
     { name = "openai" },

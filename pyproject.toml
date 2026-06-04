@@ -1,6 +1,6 @@
 [project]
 name = "llmio"
-version = "0.10.4"
+version = "0.11.0"
 description = "Easily connect large language models into your application"
 authors = [{ name = "Peter Leupi" }]
 license = "MIT"
