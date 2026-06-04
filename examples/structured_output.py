@@ -2,7 +2,7 @@ import os
 
 import pydantic
 
-from llmio import Message, StructuredAgent, OpenAIClient
+from llmio import Message, OpenAIClient, StructuredAgent
 
 
 class Booking(pydantic.BaseModel):

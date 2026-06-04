@@ -1,7 +1,7 @@
-from typing import Any, Callable, Dict, Mapping, Tuple, get_type_hints
 from inspect import Parameter, signature
+from typing import Any, Callable, Dict, Mapping, Tuple, get_type_hints
 
-from pydantic import create_model, BaseModel
+from pydantic import BaseModel, create_model
 
 
 def to_camel(string: str) -> str:

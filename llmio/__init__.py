@@ -2,22 +2,19 @@ from .agent import (
     Agent,
     StructuredAgent,
 )
-
-from .types import (
-    Message,
-    UserMessage,
-    AssistantMessage,
-    ToolCall,
-    ToolMessage,
-)
-
-from .errors import BadToolCall
 from .clients import (
-    OpenAIClient,
     AzureOpenAIClient,
     GeminiClient,
+    OpenAIClient,
 )
-
+from .errors import BadToolCall
+from .types import (
+    AssistantMessage,
+    Message,
+    ToolCall,
+    ToolMessage,
+    UserMessage,
+)
 
 __all__ = [
     "Agent",
