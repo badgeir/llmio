@@ -4,12 +4,11 @@ import re
 import textwrap
 from dataclasses import dataclass
 from inspect import iscoroutinefunction, signature
-from typing import Any, AsyncIterator, Callable, Generic, Type, TypeVar
+from typing import Any, AsyncIterator, Callable, Generic, Type, TypeVar, assert_never
 
 import pydantic
 from openai.lib._parsing import type_to_response_format_param
 from openai.types.shared_params import ResponseFormatJSONSchema
-from typing_extensions import assert_never
 
 from llmio import errors, function_parser, models
 from llmio import types as T
