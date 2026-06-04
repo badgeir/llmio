@@ -9,7 +9,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-05-21T20:24:13.728763578Z"
+exclude-newer = "2026-05-21T21:14:27.825610449Z"
 exclude-newer-span = "P2W"
 
 [[package]]
@@ -474,7 +474,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "openai", specifier = ">=1.41.0" },
+    { name = "openai", specifier = ">=2.37.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "typing-extensions", specifier = ">=4.12.2" },
 ]
