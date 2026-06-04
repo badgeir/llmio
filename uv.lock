@@ -9,7 +9,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-05-21T21:14:27.825610449Z"
+exclude-newer = "2026-05-21T21:37:42.438960986Z"
 exclude-newer-span = "P2W"
 
 [[package]]
@@ -459,7 +459,6 @@ source = { editable = "." }
 dependencies = [
     { name = "openai" },
     { name = "pydantic" },
-    { name = "typing-extensions" },
 ]
 
 [package.dev-dependencies]
@@ -475,18 +474,17 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "openai", specifier = ">=2.37.0" },
-    { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "typing-extensions", specifier = ">=4.12.2" },
+    { name = "pydantic", specifier = ">=2.13.4" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "black", specifier = ">=24.8.0" },
-    { name = "mypy", specifier = ">=1.11.1" },
-    { name = "pylint", specifier = ">=3.2.6" },
-    { name = "pytest", specifier = ">=8.3.2" },
-    { name = "pytest-asyncio", specifier = ">=0.23.8" },
-    { name = "ruff", specifier = ">=0.6.1" },
+    { name = "black", specifier = ">=26.5.1" },
+    { name = "mypy", specifier = ">=2.1.0" },
+    { name = "pylint", specifier = ">=4.0.5" },
+    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "pytest-asyncio", specifier = ">=1.3.0" },
+    { name = "ruff", specifier = ">=0.15.14" },
 ]
 
 [[package]]
