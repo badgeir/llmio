@@ -7,9 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - uses: astral-sh/setup-uv@v6
     - uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-    - run: python3 -m pip install poetry
-    - run: poetry install --with dev
-    - run: poetry run python -m mypy .
+    - run: uv sync --group dev
+    - run: uv run python -m mypy .
