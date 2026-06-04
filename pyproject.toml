@@ -1,32 +1,35 @@
-[tool.poetry]
+[project]
 name = "llmio"
 version = "0.10.4"
 description = "Easily connect large language models into your application"
-authors = ["Peter Leupi"]
+authors = [{ name = "Peter Leupi" }]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/badgeir/llmio"
-repository = "https://github.com/badgeir/llmio"
-documentation = "https://github.com/badgeir/llmio"
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.41.0",
+    "pydantic>=2.0.0",
+    "typing-extensions>=4.12.2",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-openai = ">=1.41.0"
-pydantic = ">=2.0.0"
-typing-extensions = ">=4.12.2"
+[project.urls]
+Homepage = "https://github.com/badgeir/llmio"
+Repository = "https://github.com/badgeir/llmio"
+Documentation = "https://github.com/badgeir/llmio"
 
-
-[tool.poetry.group.dev.dependencies]
-black = ">=24.8.0"
-ruff = ">=0.6.1"
-mypy = ">=1.11.1"
-pylint = ">=3.2.6"
-pytest = ">=8.3.2"
-pytest-asyncio = ">=0.23.8"
+[dependency-groups]
+dev = [
+    "black>=24.8.0",
+    "ruff>=0.6.1",
+    "mypy>=1.11.1",
+    "pylint>=3.2.6",
+    "pytest>=8.3.2",
+    "pytest-asyncio>=0.23.8",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.pylint]
 max-line-length = 120
@@ -44,8 +47,8 @@ disable = [
     "too-many-positional-arguments",
 ]
 
-[tool.ruff]
-line-length = 120
+[tool.ruff.lint]
+extend-select = ["I"]
 
-[tool.black]
-extend-exclude = "examples/notebooks"
+[tool.uv]
+exclude-newer = "2 weeks"

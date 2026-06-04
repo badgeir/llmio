@@ -1,8 +1,7 @@
 import os
 import sys
 
-from llmio import Message, Agent, OpenAIClient
-
+from llmio import Agent, Message, OpenAIClient
 
 agent = Agent(
     instruction="You are a taxi booking assistant.",

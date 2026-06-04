@@ -1,10 +1,11 @@
 import asyncio
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
+
 from pydantic import BaseModel
 
-from llmio import StructuredAgent, types as T, models, OpenAIClient
-
+from llmio import OpenAIClient, StructuredAgent, models
+from llmio import types as T
 from tests import utils
 
 

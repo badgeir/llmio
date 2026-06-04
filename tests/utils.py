@@ -1,8 +1,9 @@
 import contextlib
 from typing import Any, Iterator
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from llmio import types as T, models
+from llmio import models
+from llmio import types as T
 
 
 @contextlib.contextmanager

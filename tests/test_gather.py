@@ -1,9 +1,9 @@
 import asyncio
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 
-from llmio import Agent, types as T, models, OpenAIClient
-
+from llmio import Agent, OpenAIClient, models
+from llmio import types as T
 from tests import utils
 
 
