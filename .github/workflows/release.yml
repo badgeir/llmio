@@ -21,10 +21,10 @@ jobs:
         with:
           fetch-depth: 0  # Ensures tags are also fetched
       - uses: astral-sh/setup-uv@v6
-      - name: Set up Python 3.10.
+      - name: Set up Python.
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
       - name: Build
         run: uv build
       - name: Store the distribution packages
